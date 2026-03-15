@@ -242,7 +242,15 @@
       <div class="section">
         <div>
           <label for="lutFile">File LUT (.cube)</label>
-          <input id="lutFile" type="file" accept=".cube,text/plain" />
+          <input id="lutFile" type="file" accept=".cube,.txt,text/plain,*/*" />
+        </div>
+        <div>
+          <label for="lutText">Hoặc dán nội dung file .cube</label>
+          <textarea id="lutText" rows="6" placeholder="Dán toàn bộ nội dung file .cube vào đây nếu điện thoại không chọn được file..." style="width:100%;resize:vertical;background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:11px 12px;font-size:13px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;"></textarea>
+        </div>
+        <div class="row">
+          <button id="loadLutTextBtn">Nạp LUT từ nội dung dán</button>
+          <button id="clearLutTextBtn">Xóa nội dung dán</button>
         </div>
         <div>
           <div class="value-line">
@@ -322,6 +330,9 @@
     const captureBtn = document.getElementById('captureBtn');
     const resetBtn = document.getElementById('resetBtn');
     const lutFile = document.getElementById('lutFile');
+    const lutText = document.getElementById('lutText');
+    const loadLutTextBtn = document.getElementById('loadLutTextBtn');
+    const clearLutTextBtn = document.getElementById('clearLutTextBtn');
 
     const statusText = document.getElementById('statusText');
     const liveDot = document.getElementById('liveDot');
@@ -356,6 +367,7 @@
     let animationId = null;
     let selectedDeviceId = '';
     let isStartingCamera = false;
+    let openAttempt = 0;
 
     const vertexShaderSource = `
       attribute vec2 aPosition;
@@ -607,14 +619,18 @@
     }
 
     function render() {
-      if (video.srcObject && !video.paused && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-        resizeCanvasToVideo();
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, videoTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-        gl.uniform1i(uniforms.uVideo, 0);
-        updateUniforms();
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      try {
+        if (video.srcObject && !video.paused && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+          resizeCanvasToVideo();
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+          gl.uniform1i(uniforms.uVideo, 0);
+          updateUniforms();
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+      } catch (error) {
+        console.warn('Render frame lỗi:', error);
       }
       animationId = requestAnimationFrame(render);
     }
@@ -639,76 +655,142 @@
       }
     }
 
-    async function startCamera() {
-      if (isStartingCamera) return;
-      isStartingCamera = true;
-      statusText.textContent = 'Đang khởi động camera...';
+    async function waitForVideoFrame(videoEl, timeout = 4000) {
+      if (videoEl.readyState >= 2 && videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+        return true;
+      }
 
-      try {
-        stopCamera();
-        selectedDeviceId = cameraSelect.value;
+      return await new Promise((resolve) => {
+        let settled = false;
+        let timer = null;
 
-        const constraints = {
+        const cleanup = () => {
+          settled = true;
+          if (timer) clearTimeout(timer);
+          videoEl.removeEventListener('loadedmetadata', onMaybeReady);
+          videoEl.removeEventListener('canplay', onMaybeReady);
+          videoEl.removeEventListener('playing', onMaybeReady);
+          videoEl.removeEventListener('resize', onMaybeReady);
+        };
+
+        const finish = (ok) => {
+          if (settled) return;
+          cleanup();
+          resolve(ok);
+        };
+
+        const onMaybeReady = () => {
+          if (videoEl.readyState >= 2 && videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+            finish(true);
+          }
+        };
+
+        videoEl.addEventListener('loadedmetadata', onMaybeReady);
+        videoEl.addEventListener('canplay', onMaybeReady);
+        videoEl.addEventListener('playing', onMaybeReady);
+        videoEl.addEventListener('resize', onMaybeReady);
+
+        if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+          try {
+            videoEl.requestVideoFrameCallback(() => {
+              if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+                finish(true);
+              }
+            });
+          } catch (_) {}
+        }
+
+        timer = setTimeout(() => finish(false), timeout);
+        onMaybeReady();
+      });
+    }
+
+    async function openPreferredStream() {
+      const tries = [];
+
+      if (selectedDeviceId) {
+        tries.push({
           video: {
+            deviceId: { exact: selectedDeviceId },
             width: { ideal: 1280 },
             height: { ideal: 720 },
             frameRate: { ideal: 30 }
           },
           audio: false
-        };
-
-        if (selectedDeviceId) {
-          constraints.video.deviceId = { exact: selectedDeviceId };
-        }
-
-        try {
-          stream = await navigator.mediaDevices.getUserMedia(constraints);
-        } catch (primaryError) {
-          console.warn('Không mở được với ràng buộc chính, thử ràng buộc tối giản...', primaryError);
-
-          const fallbackConstraints = selectedDeviceId
-            ? { video: { deviceId: { exact: selectedDeviceId } }, audio: false }
-            : { video: true, audio: false };
-
-          stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-        }
-        video.srcObject = stream;
-
-        await new Promise((resolve, reject) => {
-          let done = false;
-
-          const cleanup = () => {
-            video.removeEventListener('loadedmetadata', onReady);
-            video.removeEventListener('canplay', onReady);
-            video.removeEventListener('error', onError);
-          };
-
-          const onReady = () => {
-            if (done) return;
-            done = true;
-            cleanup();
-            resolve();
-          };
-
-          const onError = () => {
-            if (done) return;
-            done = true;
-            cleanup();
-            reject(new Error('Video element không nhận được frame từ webcam.'));
-          };
-
-          video.addEventListener('loadedmetadata', onReady, { once: true });
-          video.addEventListener('canplay', onReady, { once: true });
-          video.addEventListener('error', onError, { once: true });
-
-          setTimeout(() => {
-            if (!done && video.readyState >= 2) {
-              onReady();
-            }
-          }, 1200);
         });
 
-        await video.play();
+        tries.push({
+          video: {
+            deviceId: { exact: selectedDeviceId },
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+          audio: false
+        });
+
+        tries.push({
+          video: { deviceId: { exact: selectedDeviceId } },
+          audio: false
+        });
+      }
+
+      tries.push({ video: true, audio: false });
+
+      let lastError = null;
+      for (const constraints of tries) {
+        try {
+          const s = await navigator.mediaDevices.getUserMedia(constraints);
+          return s;
+        } catch (err) {
+          lastError = err;
+          console.warn('Mở camera thất bại với constraints:', constraints, err);
+        }
+      }
+
+      throw lastError || new Error('Không thể mở camera.');
+    }
+
+    async function startCamera() {
+      if (isStartingCamera) return;
+      isStartingCamera = true;
+      openAttempt += 1;
+      const currentAttempt = openAttempt;
+      statusText.textContent = 'Đang khởi động camera...';
+
+      try {
+        stopCamera(false);
+        selectedDeviceId = cameraSelect.value || selectedDeviceId;
+
+        stream = await openPreferredStream();
+        if (currentAttempt !== openAttempt) return;
+
+        video.srcObject = stream;
+        video.muted = true;
+        video.playsInline = true;
+
+        try {
+          await video.play();
+        } catch (_) {}
+
+        let hasFrame = await waitForVideoFrame(video, 4000);
+
+        if (!hasFrame) {
+          console.warn('Không nhận được frame đầu tiên, thử mở lại stream tối giản.');
+          stopCamera(false);
+          stream = selectedDeviceId
+            ? await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: selectedDeviceId } }, audio: false })
+            : await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          video.srcObject = stream;
+          try {
+            await video.play();
+          } catch (_) {}
+          hasFrame = await waitForVideoFrame(video, 4000);
+        }
+
+        if (!hasFrame || video.videoWidth === 0 || video.videoHeight === 0) {
+          throw new Error('Camera đã kết nối nhưng trình duyệt không nhận được khung hình. Hãy thử đổi camera hoặc đóng ứng dụng đang chiếm webcam.');
+        }
+
         resizeCanvasToVideo();
 
         if (!videoTexture) videoTexture = createVideoTexture();
@@ -723,7 +805,7 @@
         } catch (_) {}
       } catch (error) {
         console.error(error);
-        stopCamera();
+        stopCamera(false);
         statusText.textContent = 'Lỗi mở camera';
         alert('Không thể mở webcam ổn định: ' + error.message);
       } finally {
@@ -731,7 +813,9 @@
       }
     }
 
-    function stopCamera() {
+    function stopCamera(resetStatus = true) {
+      openAttempt += 1;
+
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
         stream = null;
@@ -747,9 +831,12 @@
 
       gl.clearColor(0, 0, 0, 1);
       gl.clear(gl.COLOR_BUFFER_BIT);
-      statusText.textContent = 'Chưa bật camera';
-      liveDot.classList.remove('live');
-      resolutionText.textContent = '-';
+
+      if (resetStatus) {
+        statusText.textContent = 'Chưa bật camera';
+        liveDot.classList.remove('live');
+        resolutionText.textContent = '-';
+      }
     }
 
     function captureImage() {
@@ -785,17 +872,39 @@
     captureBtn.addEventListener('click', captureImage);
     resetBtn.addEventListener('click', resetControls);
 
+    function loadLutFromTextContent(text, fileName = 'Pasted LUT') {
+      const lut = parseCube(text, fileName);
+      uploadLUTTexture(lut);
+    }
+
     lutFile.addEventListener('change', async (event) => {
       const file = event.target.files?.[0];
       if (!file) return;
       try {
         const text = await file.text();
-        const lut = parseCube(text, file.name);
-        uploadLUTTexture(lut);
+        loadLutFromTextContent(text, file.name);
       } catch (error) {
         console.error(error);
         alert('Lỗi nạp LUT: ' + error.message);
       }
+    });
+
+    loadLutTextBtn.addEventListener('click', () => {
+      const text = lutText.value.trim();
+      if (!text) {
+        alert('Bạn chưa dán nội dung file .cube');
+        return;
+      }
+      try {
+        loadLutFromTextContent(text, 'Pasted LUT');
+      } catch (error) {
+        console.error(error);
+        alert('Lỗi nạp LUT từ nội dung dán: ' + error.message);
+      }
+    });
+
+    clearLutTextBtn.addEventListener('click', () => {
+      lutText.value = '';
     });
 
     navigator.mediaDevices.addEventListener?.('devicechange', listCameras);
