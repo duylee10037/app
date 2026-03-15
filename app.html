@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Webcam + Blackmagic LUT</title>
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --panel: #121722;
+      --panel-2: #1a2230;
+      --text: #e9eef9;
+      --muted: #9fb0c9;
+      --accent: #3aa0ff;
+      --danger: #ff5d5d;
+      --ok: #35c26b;
+      --border: #263247;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #0a0c11 0%, #10141d 100%);
+      color: var(--text);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      min-height: 100vh;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .panel {
+      background: rgba(18, 23, 34, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.25);
+      backdrop-filter: blur(10px);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    label {
+      font-size: 13px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input[type="range"], select, input[type="file"], button {
+      width: 100%;
+    }
+
+    button, select, input[type="file"] {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 14px;
+    }
+
+    button {
+      cursor: pointer;
+      transition: 0.18s ease;
+      font-weight: 600;
+    }
+
+    button:hover { transform: translateY(-1px); border-color: #3f5377; }
+    button.primary { background: linear-gradient(135deg, #1783ff 0%, #57b2ff 100%); border: none; }
+    button.danger { background: rgba(255, 93, 93, 0.1); color: #ffb1b1; border-color: rgba(255, 93, 93, 0.2); }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      font-size: 13px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 15px;
+      margin-top: 4px;
+      color: var(--text);
+    }
+
+    .viewer {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background: #06080d;
+      min-height: 72vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      max-height: 80vh;
+      object-fit: contain;
+      background: #000;
+    }
+
+    video { display: none; }
+
+    .topbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 12px rgba(255,93,93,0.55);
+    }
+
+    .dot.live { background: var(--ok); box-shadow: 0 0 12px rgba(53,194,107,0.55); }
+
+    .help {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .value-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .footer-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+      .stage {
+        min-height: 50vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel sidebar">
+      <div>
+        <h1 class="title">Webcam + LUT Blackmagic</h1>
+        <p class="subtitle">
+          Chụp ảnh từ webcam và áp file LUT <code>.cube</code> trực tiếp trên trình duyệt bằng WebGL.
+        </p>
+      </div>
+
+      <div class="row">
+        <div class="stat">Nguồn ảnh<strong>Webcam</strong></div>
+        <div class="stat">Xử lý màu<strong>3D LUT</strong></div>
+      </div>
+
+      <div class="section">
+        <div>
+          <label for="cameraSelect">Camera</label>
+          <select id="cameraSelect"></select>
+        </div>
+        <div class="row">
+          <button id="startBtn" class="primary">Bật camera</button>
+          <button id="stopBtn" class="danger">Tắt camera</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div>
+          <label for="lutFile">File LUT (.cube)</label>
+          <input id="lutFile" type="file" accept=".cube,text/plain" />
+        </div>
+        <div>
+          <div class="value-line">
+            <span>Cường độ LUT</span>
+            <span id="lutMixValue">100%</span>
+          </div>
+          <input id="lutMix" type="range" min="0" max="1" step="0.01" value="1" />
+        </div>
+      </div>
+
+      <div class="section">
+        <div>
+          <div class="value-line">
+            <span>Exposure</span>
+            <span id="exposureValue">0.00</span>
+          </div>
+          <input id="exposure" type="range" min="-2" max="2" step="0.01" value="0" />
+        </div>
+        <div>
+          <div class="value-line">
+            <span>Contrast</span>
+            <span id="contrastValue">1.00</span>
+          </div>
+          <input id="contrast" type="range" min="0.5" max="2" step="0.01" value="1" />
+        </div>
+        <div>
+          <div class="value-line">
+            <span>Saturation</span>
+            <span id="saturationValue">1.00</span>
+          </div>
+          <input id="saturation" type="range" min="0" max="2" step="0.01" value="1" />
+        </div>
+        <div>
+          <div class="value-line">
+            <span>Temperature</span>
+            <span id="temperatureValue">0.00</span>
+          </div>
+          <input id="temperature" type="range" min="-1" max="1" step="0.01" value="0" />
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="footer-actions">
+          <button id="captureBtn">Chụp ảnh PNG</button>
+          <button id="resetBtn">Reset thông số</button>
+        </div>
+      </div>
+
+      <div class="help">
+        Lưu ý: file <code>.cube</code> sẽ được parse trong trình duyệt. LUT 3D dạng <code>LUT_3D_SIZE</code> hoạt động tốt nhất.
+        LUT 1D và các metadata đặc biệt chưa được hỗ trợ trong bản tối giản này.
+      </div>
+    </aside>
+
+    <main class="panel viewer">
+      <div class="topbar">
+        <div class="badge"><span id="liveDot" class="dot"></span> <span id="statusText">Chưa bật camera</span></div>
+        <div class="badge">LUT: <strong id="lutName">Chưa nạp</strong></div>
+        <div class="badge">Độ phân giải: <strong id="resolutionText">-</strong></div>
+      </div>
+
+      <div class="stage">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="glcanvas"></canvas>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('glcanvas');
+    const gl = canvas.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true });
+
+    const cameraSelect = document.getElementById('cameraSelect');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const lutFile = document.getElementById('lutFile');
+
+    const statusText = document.getElementById('statusText');
+    const liveDot = document.getElementById('liveDot');
+    const lutName = document.getElementById('lutName');
+    const resolutionText = document.getElementById('resolutionText');
+
+    const controls = {
+      lutMix: document.getElementById('lutMix'),
+      exposure: document.getElementById('exposure'),
+      contrast: document.getElementById('contrast'),
+      saturation: document.getElementById('saturation'),
+      temperature: document.getElementById('temperature')
+    };
+
+    const valueEls = {
+      lutMix: document.getElementById('lutMixValue'),
+      exposure: document.getElementById('exposureValue'),
+      contrast: document.getElementById('contrastValue'),
+      saturation: document.getElementById('saturationValue'),
+      temperature: document.getElementById('temperatureValue')
+    };
+
+    if (!gl) {
+      alert('Trình duyệt không hỗ trợ WebGL.');
+      throw new Error('WebGL not supported');
+    }
+
+    let stream = null;
+    let videoTexture = null;
+    let lutTexture = null;
+    let lutSize = 2;
+    let animationId = null;
+    let selectedDeviceId = '';
+    let isStartingCamera = false;
+
+    const vertexShaderSource = `
+      attribute vec2 aPosition;
+      attribute vec2 aTexCoord;
+      varying vec2 vTexCoord;
+      void main() {
+        gl_Position = vec4(aPosition, 0.0, 1.0);
+        vTexCoord = vec2(aTexCoord.x, 1.0 - aTexCoord.y);
+      }
+    `;
+
+    const fragmentShaderSource = `
+      precision mediump float;
+      varying vec2 vTexCoord;
+      uniform sampler2D uVideo;
+      uniform sampler2D uLUT;
+      uniform float uLutSize;
+      uniform float uLutMix;
+      uniform float uExposure;
+      uniform float uContrast;
+      uniform float uSaturation;
+      uniform float uTemperature;
+
+      vec3 adjustColor(vec3 color) {
+        color *= pow(2.0, uExposure);
+        color = (color - 0.5) * uContrast + 0.5;
+
+        float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+        color = mix(vec3(luma), color, uSaturation);
+
+        color.r += uTemperature * 0.08;
+        color.b -= uTemperature * 0.08;
+        return clamp(color, 0.0, 1.0);
+      }
+
+      vec3 sampleAs3DLUT(vec3 color) {
+        float size = uLutSize;
+        float sliceSize = 1.0 / size;
+        float slicePixelSize = sliceSize / size;
+        float sliceInnerSize = slicePixelSize * (size - 1.0);
+        float zSlice0 = min(floor(color.b * (size - 1.0)), size - 1.0);
+        float zSlice1 = min(zSlice0 + 1.0, size - 1.0);
+        float zOffset = fract(color.b * (size - 1.0));
+
+        vec2 slice0;
+        slice0.x = zSlice0 * sliceSize + slicePixelSize * 0.5 + color.r * sliceInnerSize;
+        slice0.y = slicePixelSize * 0.5 + color.g * sliceInnerSize;
+
+        vec2 slice1;
+        slice1.x = zSlice1 * sliceSize + slicePixelSize * 0.5 + color.r * sliceInnerSize;
+        slice1.y = slicePixelSize * 0.5 + color.g * sliceInnerSize;
+
+        vec3 sample0 = texture2D(uLUT, slice0).rgb;
+        vec3 sample1 = texture2D(uLUT, slice1).rgb;
+        return mix(sample0, sample1, zOffset);
+      }
+
+      void main() {
+        vec3 color = texture2D(uVideo, vTexCoord).rgb;
+        color = adjustColor(color);
+        vec3 lutColor = sampleAs3DLUT(color);
+        gl_FragColor = vec4(mix(color, lutColor, uLutMix), 1.0);
+      }
+    `;
+
+    function createShader(type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        const log = gl.getShaderInfoLog(shader);
+        gl.deleteShader(shader);
+        throw new Error(log);
+      }
+      return shader;
+    }
+
+    function createProgram(vsSource, fsSource) {
+      const vs = createShader(gl.VERTEX_SHADER, vsSource);
+      const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
+      const program = gl.createProgram();
+      gl.attachShader(program, vs);
+      gl.attachShader(program, fs);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        const log = gl.getProgramInfoLog(program);
+        throw new Error(log);
+      }
+      return program;
+    }
+
+    const program = createProgram(vertexShaderSource, fragmentShaderSource);
+    gl.useProgram(program);
+
+    const quadBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([
+        -1, -1, 0, 0,
+         1, -1, 1, 0,
+        -1,  1, 0, 1,
+        -1,  1, 0, 1,
+         1, -1, 1, 0,
+         1,  1, 1, 1
+      ]),
+      gl.STATIC_DRAW
+    );
+
+    const aPosition = gl.getAttribLocation(program, 'aPosition');
+    const aTexCoord = gl.getAttribLocation(program, 'aTexCoord');
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 16, 0);
+    gl.enableVertexAttribArray(aTexCoord);
+    gl.vertexAttribPointer(aTexCoord, 2, gl.FLOAT, false, 16, 8);
+
+    const uniforms = {
+      uVideo: gl.getUniformLocation(program, 'uVideo'),
+      uLUT: gl.getUniformLocation(program, 'uLUT'),
+      uLutSize: gl.getUniformLocation(program, 'uLutSize'),
+      uLutMix: gl.getUniformLocation(program, 'uLutMix'),
+      uExposure: gl.getUniformLocation(program, 'uExposure'),
+      uContrast: gl.getUniformLocation(program, 'uContrast'),
+      uSaturation: gl.getUniformLocation(program, 'uSaturation'),
+      uTemperature: gl.getUniformLocation(program, 'uTemperature')
+    };
+
+    function createVideoTexture() {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      return tex;
+    }
+
+    function createNeutralLUT(size = 32) {
+      const width = size * size;
+      const height = size;
+      const data = new Uint8Array(width * height * 4);
+      let ptr = 0;
+      for (let b = 0; b < size; b++) {
+        for (let g = 0; g < size; g++) {
+          for (let r = 0; r < size; r++) {
+            data[ptr++] = Math.round((r / (size - 1)) * 255);
+            data[ptr++] = Math.round((g / (size - 1)) * 255);
+            data[ptr++] = Math.round((b / (size - 1)) * 255);
+            data[ptr++] = 255;
+          }
+        }
+      }
+      return { size, width, height, data, title: 'Neutral LUT' };
+    }
+
+    function uploadLUTTexture(lut) {
+      lutSize = lut.size;
+      if (!lutTexture) lutTexture = gl.createTexture();
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, lutTexture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, lut.width, lut.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, lut.data);
+      gl.uniform1i(uniforms.uLUT, 1);
+      gl.uniform1f(uniforms.uLutSize, lut.size);
+      lutName.textContent = lut.title || `LUT ${lut.size}`;
+    }
+
+    function parseCube(text, fileName = 'Custom LUT') {
+      const lines = text.split(/\r?\n/);
+      let size = 0;
+      const values = [];
+
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith('#')) continue;
+        if (line.startsWith('TITLE')) continue;
+        if (line.startsWith('DOMAIN_MIN')) continue;
+        if (line.startsWith('DOMAIN_MAX')) continue;
+        if (line.startsWith('LUT_1D_SIZE')) {
+          throw new Error('Bản này chưa hỗ trợ LUT 1D. Hãy dùng LUT_3D_SIZE.');
+        }
+        if (line.startsWith('LUT_3D_SIZE')) {
+          const parts = line.split(/\s+/);
+          size = parseInt(parts[1], 10);
+          continue;
+        }
+
+        const nums = line.split(/\s+/).map(Number);
+        if (nums.length >= 3 && nums.every(n => !Number.isNaN(n))) {
+          values.push(nums[0], nums[1], nums[2]);
+        }
+      }
+
+      if (!size) throw new Error('Không tìm thấy LUT_3D_SIZE trong file .cube');
+      const expected = size * size * size * 3;
+      if (values.length < expected) {
+        throw new Error(`Dữ liệu LUT không đủ. Cần ${expected / 3} điểm màu, hiện có ${values.length / 3}.`);
+      }
+
+      const width = size * size;
+      const height = size;
+      const data = new Uint8Array(width * height * 4);
+      let ptr = 0;
+
+      for (let i = 0; i < expected; i += 3) {
+        data[ptr++] = Math.max(0, Math.min(255, Math.round(values[i] * 255)));
+        data[ptr++] = Math.max(0, Math.min(255, Math.round(values[i + 1] * 255)));
+        data[ptr++] = Math.max(0, Math.min(255, Math.round(values[i + 2] * 255)));
+        data[ptr++] = 255;
+      }
+
+      return { size, width, height, data, title: fileName };
+    }
+
+    function resizeCanvasToVideo() {
+      const w = video.videoWidth || 1280;
+      const h = video.videoHeight || 720;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        gl.viewport(0, 0, w, h);
+        resolutionText.textContent = `${w}×${h}`;
+      }
+    }
+
+    function updateUniforms() {
+      const lutMix = Number(controls.lutMix.value);
+      const exposure = Number(controls.exposure.value);
+      const contrast = Number(controls.contrast.value);
+      const saturation = Number(controls.saturation.value);
+      const temperature = Number(controls.temperature.value);
+
+      valueEls.lutMix.textContent = `${Math.round(lutMix * 100)}%`;
+      valueEls.exposure.textContent = exposure.toFixed(2);
+      valueEls.contrast.textContent = contrast.toFixed(2);
+      valueEls.saturation.textContent = saturation.toFixed(2);
+      valueEls.temperature.textContent = temperature.toFixed(2);
+
+      gl.uniform1f(uniforms.uLutMix, lutMix);
+      gl.uniform1f(uniforms.uExposure, exposure);
+      gl.uniform1f(uniforms.uContrast, contrast);
+      gl.uniform1f(uniforms.uSaturation, saturation);
+      gl.uniform1f(uniforms.uTemperature, temperature);
+    }
+
+    function render() {
+      if (video.srcObject && !video.paused && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+        resizeCanvasToVideo();
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+        gl.uniform1i(uniforms.uVideo, 0);
+        updateUniforms();
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+      animationId = requestAnimationFrame(render);
+    }
+
+    async function listCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter(d => d.kind === 'videoinput');
+      const previousValue = selectedDeviceId || cameraSelect.value;
+      cameraSelect.innerHTML = '';
+
+      cams.forEach((cam, index) => {
+        const option = document.createElement('option');
+        option.value = cam.deviceId;
+        option.textContent = cam.label || `Camera ${index + 1}`;
+        cameraSelect.appendChild(option);
+      });
+
+      if (cams.length) {
+        const found = cams.some(cam => cam.deviceId === previousValue);
+        cameraSelect.value = found ? previousValue : cams[0].deviceId;
+        selectedDeviceId = cameraSelect.value;
+      }
+    }
+
+    async function startCamera() {
+      if (isStartingCamera) return;
+      isStartingCamera = true;
+      statusText.textContent = 'Đang khởi động camera...';
+
+      try {
+        stopCamera();
+        selectedDeviceId = cameraSelect.value;
+
+        const constraints = {
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 }
+          },
+          audio: false
+        };
+
+        if (selectedDeviceId) {
+          constraints.video.deviceId = { exact: selectedDeviceId };
+        }
+
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (primaryError) {
+          console.warn('Không mở được với ràng buộc chính, thử ràng buộc tối giản...', primaryError);
+
+          const fallbackConstraints = selectedDeviceId
+            ? { video: { deviceId: { exact: selectedDeviceId } }, audio: false }
+            : { video: true, audio: false };
+
+          stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+        }
+        video.srcObject = stream;
+
+        await new Promise((resolve, reject) => {
+          let done = false;
+
+          const cleanup = () => {
+            video.removeEventListener('loadedmetadata', onReady);
+            video.removeEventListener('canplay', onReady);
+            video.removeEventListener('error', onError);
+          };
+
+          const onReady = () => {
+            if (done) return;
+            done = true;
+            cleanup();
+            resolve();
+          };
+
+          const onError = () => {
+            if (done) return;
+            done = true;
+            cleanup();
+            reject(new Error('Video element không nhận được frame từ webcam.'));
+          };
+
+          video.addEventListener('loadedmetadata', onReady, { once: true });
+          video.addEventListener('canplay', onReady, { once: true });
+          video.addEventListener('error', onError, { once: true });
+
+          setTimeout(() => {
+            if (!done && video.readyState >= 2) {
+              onReady();
+            }
+          }, 1200);
+        });
+
+        await video.play();
+        resizeCanvasToVideo();
+
+        if (!videoTexture) videoTexture = createVideoTexture();
+        if (animationId) cancelAnimationFrame(animationId);
+        render();
+
+        statusText.textContent = 'Camera đang chạy';
+        liveDot.classList.add('live');
+
+        try {
+          await listCameras();
+        } catch (_) {}
+      } catch (error) {
+        console.error(error);
+        stopCamera();
+        statusText.textContent = 'Lỗi mở camera';
+        alert('Không thể mở webcam ổn định: ' + error.message);
+      } finally {
+        isStartingCamera = false;
+      }
+    }
+
+    function stopCamera() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+
+      video.pause();
+      video.srcObject = null;
+
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      statusText.textContent = 'Chưa bật camera';
+      liveDot.classList.remove('live');
+      resolutionText.textContent = '-';
+    }
+
+    function captureImage() {
+      const link = document.createElement('a');
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      link.download = `capture-${ts}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function resetControls() {
+      controls.lutMix.value = '1';
+      controls.exposure.value = '0';
+      controls.contrast.value = '1';
+      controls.saturation.value = '1';
+      controls.temperature.value = '0';
+      updateUniforms();
+    }
+
+    for (const key of Object.keys(controls)) {
+      controls[key].addEventListener('input', updateUniforms);
+    }
+
+    cameraSelect.addEventListener('change', async () => {
+      selectedDeviceId = cameraSelect.value;
+      if (stream) {
+        await startCamera();
+      }
+    });
+
+    startBtn.addEventListener('click', startCamera);
+    stopBtn.addEventListener('click', stopCamera);
+    captureBtn.addEventListener('click', captureImage);
+    resetBtn.addEventListener('click', resetControls);
+
+    lutFile.addEventListener('change', async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const lut = parseCube(text, file.name);
+        uploadLUTTexture(lut);
+      } catch (error) {
+        console.error(error);
+        alert('Lỗi nạp LUT: ' + error.message);
+      }
+    });
+
+    navigator.mediaDevices.addEventListener?.('devicechange', listCameras);
+
+    window.addEventListener('beforeunload', stopCamera);
+
+    // init
+    uploadLUTTexture(createNeutralLUT(32));
+    updateUniforms();
+
+    (async () => {
+      try {
+        await listCameras();
+      } catch (error) {
+        console.warn('Không thể lấy danh sách camera', error);
+      }
+    })();
+  </script>
+</body>
+</html>
