@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Webcam + LUT CUBE</title>
+  <title>Webcam LUT Accurate v3</title>
   <style>
     :root {
       --bg: #0b0f14;
@@ -16,145 +16,43 @@
       --ok: #34c759;
     }
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: linear-gradient(180deg, #0a0d12, #0f141d);
-      color: var(--text);
-    }
-    .app {
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 16px;
-      padding: 16px;
-    }
-    .panel {
-      background: rgba(18,25,35,.95);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 16px;
-      box-shadow: 0 14px 36px rgba(0,0,0,.25);
-    }
+    body { margin: 0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(180deg, #0a0d12, #0f141d); color: var(--text); }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 380px 1fr; gap: 16px; padding: 16px; }
+    .panel { background: rgba(18,25,35,.95); border: 1px solid var(--border); border-radius: 20px; padding: 16px; box-shadow: 0 14px 36px rgba(0,0,0,.25); }
     .sidebar { display: flex; flex-direction: column; gap: 14px; }
     .title { margin: 0 0 6px; font-size: 22px; }
     .subtitle { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
-    .section {
-      border-top: 1px solid rgba(255,255,255,.07);
-      padding-top: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    label {
-      display: block;
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    select, button, input[type="file"], textarea {
-      width: 100%;
-      background: var(--panel2);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 11px 12px;
-      font-size: 14px;
-    }
-    textarea {
-      min-height: 110px;
-      resize: vertical;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
+    .section { border-top: 1px solid rgba(255,255,255,.07); padding-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    select, button, input[type="file"], textarea { width: 100%; background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 11px 12px; font-size: 14px; }
+    textarea { min-height: 110px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     button { cursor: pointer; font-weight: 600; }
     button.primary { background: linear-gradient(135deg, #2f88ff, #66b7ff); border: none; }
     button.danger { color: #ffc1c1; background: rgba(255,107,107,.08); border-color: rgba(255,107,107,.2); }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .stat {
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.06);
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 13px;
-      color: var(--muted);
-    }
+    .stat { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); border-radius: 12px; padding: 10px 12px; font-size: 13px; color: var(--muted); }
     .stat strong { display: block; color: var(--text); font-size: 15px; margin-top: 4px; }
     .viewer { display: flex; flex-direction: column; gap: 14px; }
     .topbar { display: flex; flex-wrap: wrap; gap: 10px; }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.08);
-      color: var(--muted);
-      font-size: 13px;
-    }
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--danger);
-      box-shadow: 0 0 10px rgba(255,107,107,.5);
-    }
+    .badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 999px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); color: var(--muted); font-size: 13px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 10px rgba(255,107,107,.5); }
     .dot.live { background: var(--ok); box-shadow: 0 0 10px rgba(52,199,89,.5); }
-    .stage {
-      position: relative;
-      border-radius: 24px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      background: #000;
-      min-height: 70vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    video, canvas {
-      width: 100%;
-      height: auto;
-      max-height: 80vh;
-      object-fit: contain;
-      display: block;
-      background: #000;
-    }
+    .stage { position: relative; border-radius: 24px; overflow: hidden; border: 1px solid var(--border); background: #000; min-height: 70vh; display: flex; align-items: center; justify-content: center; }
+    video, canvas { width: 100%; height: auto; max-height: 80vh; object-fit: contain; display: block; background: #000; transform-origin: center center; }
     #previewCanvas { display: none; }
-    .hint {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.55;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(255,255,255,.06);
-      border-radius: 12px;
-      padding: 10px 12px;
-    }
-    .warn {
-      background: rgba(255, 194, 0, .08);
-      border-color: rgba(255, 194, 0, .18);
-      color: #ffe49a;
-    }
-    .value-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
+    .hint { font-size: 12px; color: var(--muted); line-height: 1.55; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); border-radius: 12px; padding: 10px 12px; }
+    .warn { background: rgba(255, 194, 0, .08); border-color: rgba(255, 194, 0, .18); color: #ffe49a; }
+    .value-line { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
     input[type="range"] { width: 100%; }
-    @media (max-width: 980px) {
-      .app { grid-template-columns: 1fr; }
-      .stage { min-height: 46vh; }
-    }
+    @media (max-width: 980px) { .app { grid-template-columns: 1fr; } .stage { min-height: 46vh; } }
   </style>
 </head>
 <body>
   <div class="app">
     <aside class="panel sidebar">
       <div>
-        <h1 class="title">Webcam + LUT .cube</h1>
-        <p class="subtitle">Bản ưu tiên tương thích mobile, DroidCam và webcam rời. Preview mặc định là video gốc, LUT được áp khi bật preview LUT hoặc khi chụp ảnh.</p>
+        <h1 class="title">Webcam LUT Accurate v3</h1>
+        <p class="subtitle">Bản vá mạnh hơn cho lỗi không thấy camera, đặc biệt khi trình duyệt chưa cấp quyền nên danh sách thiết bị bị rỗng.</p>
       </div>
 
       <div class="row">
@@ -162,14 +60,13 @@
         <div class="stat">LUT<strong>3D .cube</strong></div>
       </div>
 
-      <div id="secureWarning" class="hint warn" style="display:none;">
-        Camera trên mobile thường chỉ hoạt động khi mở trang bằng HTTPS hoặc localhost. Nếu bạn đang mở file trực tiếp hoặc HTTP thường, camera có thể không chạy.
-      </div>
+      <div id="secureWarning" class="hint warn" style="display:none;">Camera trên mobile thường chỉ hoạt động khi mở trang bằng HTTPS hoặc localhost.</div>
+      <div id="cameraHelp" class="hint">Nếu dropdown rỗng, cứ bấm <b>Bật camera</b>. Trình duyệt sẽ xin quyền trước, sau đó app sẽ tự quét lại camera.</div>
 
       <div class="section">
         <div>
           <label for="cameraSelect">Camera</label>
-          <select id="cameraSelect"></select>
+          <select id="cameraSelect"><option value="">Tự động chọn camera</option></select>
         </div>
         <div class="row">
           <button id="startBtn" class="primary">Bật camera</button>
@@ -178,6 +75,10 @@
         <div class="row">
           <button id="retryBtn">Khởi động lại</button>
           <button id="switchBtn">Đổi trước / sau</button>
+        </div>
+        <div class="row">
+          <button id="toggleMirrorBtn">Tắt lật preview</button>
+          <button id="toggleCaptureMirrorBtn">Lưu ảnh không lật</button>
         </div>
       </div>
 
@@ -193,6 +94,33 @@
         <div class="row">
           <button id="loadTextBtn">Nạp LUT từ nội dung dán</button>
           <button id="clearTextBtn">Xóa nội dung</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div>
+          <label for="inputSpace">Input màu trước LUT</label>
+          <select id="inputSpace">
+            <option value="srgb-linear">Webcam sRGB → linear</option>
+            <option value="srgb-direct">Webcam sRGB trực tiếp</option>
+          </select>
+        </div>
+        <div>
+          <label for="previewQuality">Chất lượng preview LUT</label>
+          <select id="previewQuality">
+            <option value="0.5">Nhanh (50%)</option>
+            <option value="0.75" selected>Cân bằng (75%)</option>
+            <option value="1">Đầy đủ (100%)</option>
+          </select>
+        </div>
+        <div>
+          <label for="previewFps">FPS preview LUT</label>
+          <select id="previewFps">
+            <option value="12">12 FPS</option>
+            <option value="18" selected>18 FPS</option>
+            <option value="24">24 FPS</option>
+            <option value="30">30 FPS</option>
+          </select>
         </div>
       </div>
 
@@ -229,10 +157,6 @@
           <button id="rawPreviewBtn">Xem video gốc</button>
         </div>
       </div>
-
-      <div class="hint">
-        Bản này ưu tiên ổn định. Nếu mobile yếu, hãy để preview ở video gốc và chỉ áp LUT khi chụp để nhẹ hơn.
-      </div>
     </aside>
 
     <main class="panel viewer">
@@ -241,8 +165,8 @@
         <div class="badge">LUT: <strong id="lutName">Neutral LUT</strong></div>
         <div class="badge">Độ phân giải: <strong id="resolutionText">-</strong></div>
         <div class="badge">Mode: <strong id="modeText">Video gốc</strong></div>
+        <div class="badge">Mirror: <strong id="mirrorText">Bật</strong></div>
       </div>
-
       <div class="stage">
         <video id="video" autoplay muted playsinline webkit-playsinline></video>
         <canvas id="previewCanvas"></canvas>
@@ -253,9 +177,7 @@
   <script>
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
     const secureWarning = document.getElementById('secureWarning');
-    if (!window.isSecureContext && !/localhost|127\.0\.0\.1/.test(location.hostname)) {
-      secureWarning.style.display = 'block';
-    }
+    if (!window.isSecureContext && !/localhost|127\.0\.0\.1/.test(location.hostname)) secureWarning.style.display = 'block';
 
     const video = document.getElementById('video');
     const previewCanvas = document.getElementById('previewCanvas');
@@ -264,14 +186,20 @@
     const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
 
     const cameraSelect = document.getElementById('cameraSelect');
+    const cameraHelp = document.getElementById('cameraHelp');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const retryBtn = document.getElementById('retryBtn');
     const switchBtn = document.getElementById('switchBtn');
+    const toggleMirrorBtn = document.getElementById('toggleMirrorBtn');
+    const toggleCaptureMirrorBtn = document.getElementById('toggleCaptureMirrorBtn');
     const lutFile = document.getElementById('lutFile');
     const lutText = document.getElementById('lutText');
     const loadTextBtn = document.getElementById('loadTextBtn');
     const clearTextBtn = document.getElementById('clearTextBtn');
+    const inputSpace = document.getElementById('inputSpace');
+    const previewQuality = document.getElementById('previewQuality');
+    const previewFps = document.getElementById('previewFps');
     const togglePreviewBtn = document.getElementById('togglePreviewBtn');
     const rawPreviewBtn = document.getElementById('rawPreviewBtn');
     const captureBtn = document.getElementById('captureBtn');
@@ -282,6 +210,7 @@
     const lutName = document.getElementById('lutName');
     const resolutionText = document.getElementById('resolutionText');
     const modeText = document.getElementById('modeText');
+    const mirrorText = document.getElementById('mirrorText');
 
     const controls = {
       lutMix: document.getElementById('lutMix'),
@@ -299,12 +228,15 @@
     };
 
     let stream = null;
+    let cameraListReady = false;
     let selectedDeviceId = '';
     let preferredFacingMode = 'user';
     let isStarting = false;
     let rafId = null;
     let previewWithLUT = false;
-
+    let lastPreviewRenderTime = 0;
+    let mirrorPreview = true;
+    let mirrorCapture = false;
     let lut = createNeutralLUT(16);
 
     function updateControlLabels() {
@@ -315,153 +247,127 @@
       valueEls.temperature.textContent = Number(controls.temperature.value).toFixed(2);
     }
 
+    function applyMirrorUI() {
+      const t = mirrorPreview ? 'scaleX(-1)' : 'scaleX(1)';
+      video.style.transform = t;
+      previewCanvas.style.transform = t;
+      mirrorText.textContent = mirrorPreview ? 'Bật' : 'Tắt';
+      toggleMirrorBtn.textContent = mirrorPreview ? 'Tắt lật preview' : 'Bật lật preview';
+      toggleCaptureMirrorBtn.textContent = mirrorCapture ? 'Lưu ảnh theo preview' : 'Lưu ảnh không lật';
+    }
+
     function setModeText() {
       modeText.textContent = previewWithLUT ? 'Preview LUT' : 'Video gốc';
       video.style.display = previewWithLUT ? 'none' : 'block';
       previewCanvas.style.display = previewWithLUT ? 'block' : 'none';
       togglePreviewBtn.textContent = previewWithLUT ? 'Tắt preview LUT' : 'Bật preview LUT';
+      applyMirrorUI();
     }
 
     function createNeutralLUT(size = 16) {
       const data = new Float32Array(size * size * size * 3);
       let p = 0;
-      for (let b = 0; b < size; b++) {
-        for (let g = 0; g < size; g++) {
-          for (let r = 0; r < size; r++) {
-            data[p++] = r / (size - 1);
-            data[p++] = g / (size - 1);
-            data[p++] = b / (size - 1);
-          }
-        }
+      for (let b = 0; b < size; b++) for (let g = 0; g < size; g++) for (let r = 0; r < size; r++) {
+        data[p++] = r / (size - 1); data[p++] = g / (size - 1); data[p++] = b / (size - 1);
       }
-      return { size, data, title: 'Neutral LUT' };
+      return { size, data, title: 'Neutral LUT', domainMin: [0,0,0], domainMax: [1,1,1] };
     }
 
     function parseCube(text, fileName = 'Custom LUT') {
       const lines = text.split(/\r?\n/);
-      let size = 0;
+      let size = 0, domainMin = [0,0,0], domainMax = [1,1,1];
       const values = [];
       for (const raw of lines) {
         const line = raw.trim();
         if (!line || line.startsWith('#')) continue;
-        if (line.startsWith('TITLE') || line.startsWith('DOMAIN_MIN') || line.startsWith('DOMAIN_MAX')) continue;
+        if (line.startsWith('TITLE')) continue;
         if (line.startsWith('LUT_1D_SIZE')) throw new Error('Bản này chỉ hỗ trợ LUT 3D.');
-        if (line.startsWith('LUT_3D_SIZE')) {
-          const parts = line.split(/\s+/);
-          size = parseInt(parts[1], 10);
-          continue;
-        }
+        if (line.startsWith('DOMAIN_MIN')) { const p = line.split(/\s+/).slice(1).map(Number); if (p.length >= 3) domainMin = [p[0],p[1],p[2]]; continue; }
+        if (line.startsWith('DOMAIN_MAX')) { const p = line.split(/\s+/).slice(1).map(Number); if (p.length >= 3) domainMax = [p[0],p[1],p[2]]; continue; }
+        if (line.startsWith('LUT_3D_SIZE')) { size = parseInt(line.split(/\s+/)[1], 10); continue; }
         const nums = line.split(/\s+/).map(Number);
-        if (nums.length >= 3 && nums.every(n => !Number.isNaN(n))) {
-          values.push(nums[0], nums[1], nums[2]);
-        }
+        if (nums.length >= 3 && nums.every(n => !Number.isNaN(n))) values.push(nums[0], nums[1], nums[2]);
       }
       if (!size) throw new Error('Không tìm thấy LUT_3D_SIZE.');
       const expected = size * size * size * 3;
       if (values.length < expected) throw new Error('Dữ liệu LUT không đủ.');
       const data = new Float32Array(expected);
       for (let i = 0; i < expected; i++) data[i] = Math.max(0, Math.min(1, values[i]));
-      return { size, data, title: fileName };
+      return { size, data, title: fileName, domainMin, domainMax };
     }
 
-    function getLutColor(r, g, b) {
-      const size = lut.size;
-      const rf = r * (size - 1);
-      const gf = g * (size - 1);
-      const bf = b * (size - 1);
-
-      const r0 = Math.floor(rf), g0 = Math.floor(gf), b0 = Math.floor(bf);
-      const r1 = Math.min(r0 + 1, size - 1), g1 = Math.min(g0 + 1, size - 1), b1 = Math.min(b0 + 1, size - 1);
-      const tr = rf - r0, tg = gf - g0, tb = bf - b0;
-
-      const idx = (rr, gg, bb) => ((bb * size * size) + (gg * size) + rr) * 3;
-      const sample = (rr, gg, bb) => {
-        const i = idx(rr, gg, bb);
-        return [lut.data[i], lut.data[i + 1], lut.data[i + 2]];
-      };
-
-      const c000 = sample(r0, g0, b0), c100 = sample(r1, g0, b0), c010 = sample(r0, g1, b0), c110 = sample(r1, g1, b0);
-      const c001 = sample(r0, g0, b1), c101 = sample(r1, g0, b1), c011 = sample(r0, g1, b1), c111 = sample(r1, g1, b1);
-
-      const mix = (a, b, t) => a + (b - a) * t;
-      const out = [0, 0, 0];
-      for (let c = 0; c < 3; c++) {
-        const c00 = mix(c000[c], c100[c], tr);
-        const c10 = mix(c010[c], c110[c], tr);
-        const c01 = mix(c001[c], c101[c], tr);
-        const c11 = mix(c011[c], c111[c], tr);
-        const c0 = mix(c00, c10, tg);
-        const c1 = mix(c01, c11, tg);
-        out[c] = mix(c0, c1, tb);
-      }
-      return out;
-    }
+    const srgbToLinear = v => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    const linearToSrgb = v => v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+    const transformInput = (r,g,b) => inputSpace.value === 'srgb-linear' ? [srgbToLinear(r), srgbToLinear(g), srgbToLinear(b)] : [r,g,b];
+    const transformOutput = (r,g,b) => inputSpace.value === 'srgb-linear' ? [linearToSrgb(r), linearToSrgb(g), linearToSrgb(b)] : [r,g,b];
 
     function adjustColor(r, g, b) {
-      const exposure = Number(controls.exposure.value);
-      const contrast = Number(controls.contrast.value);
-      const saturation = Number(controls.saturation.value);
-      const temperature = Number(controls.temperature.value);
-
-      r *= Math.pow(2, exposure);
-      g *= Math.pow(2, exposure);
-      b *= Math.pow(2, exposure);
-
-      r = (r - 0.5) * contrast + 0.5;
-      g = (g - 0.5) * contrast + 0.5;
-      b = (b - 0.5) * contrast + 0.5;
-
+      const exposure = Number(controls.exposure.value), contrast = Number(controls.contrast.value), saturation = Number(controls.saturation.value), temperature = Number(controls.temperature.value);
+      [r,g,b] = transformInput(r,g,b);
+      const expMul = Math.pow(2, exposure);
+      r *= expMul; g *= expMul; b *= expMul;
+      r = (r - 0.5) * contrast + 0.5; g = (g - 0.5) * contrast + 0.5; b = (b - 0.5) * contrast + 0.5;
       const luma = r * 0.2126 + g * 0.7152 + b * 0.0722;
-      r = luma + (r - luma) * saturation;
-      g = luma + (g - luma) * saturation;
-      b = luma + (b - luma) * saturation;
-
-      r += temperature * 0.08;
-      b -= temperature * 0.08;
-
+      r = luma + (r - luma) * saturation; g = luma + (g - luma) * saturation; b = luma + (b - luma) * saturation;
+      r += temperature * 0.08; b -= temperature * 0.08;
       return [Math.max(0, Math.min(1, r)), Math.max(0, Math.min(1, g)), Math.max(0, Math.min(1, b))];
     }
 
+    function getLutColor(r, g, b) {
+      const size = lut.size, dm = lut.domainMin || [0,0,0], dx = lut.domainMax || [1,1,1];
+      r = Math.max(0, Math.min(1, (r - dm[0]) / Math.max(1e-6, dx[0] - dm[0])));
+      g = Math.max(0, Math.min(1, (g - dm[1]) / Math.max(1e-6, dx[1] - dm[1])));
+      b = Math.max(0, Math.min(1, (b - dm[2]) / Math.max(1e-6, dx[2] - dm[2])));
+      const rf = r * (size - 1), gf = g * (size - 1), bf = b * (size - 1);
+      const r0 = Math.floor(rf), g0 = Math.floor(gf), b0 = Math.floor(bf), r1 = Math.min(r0 + 1, size - 1), g1 = Math.min(g0 + 1, size - 1), b1 = Math.min(b0 + 1, size - 1);
+      const tr = rf - r0, tg = gf - g0, tb = bf - b0;
+      const idx = (rr, gg, bb) => ((bb * size * size) + (gg * size) + rr) * 3;
+      const s = (rr, gg, bb) => { const i = idx(rr, gg, bb); return [lut.data[i], lut.data[i + 1], lut.data[i + 2]]; };
+      const c000=s(r0,g0,b0), c100=s(r1,g0,b0), c010=s(r0,g1,b0), c110=s(r1,g1,b0), c001=s(r0,g0,b1), c101=s(r1,g0,b1), c011=s(r0,g1,b1), c111=s(r1,g1,b1);
+      const mix=(a,b,t)=>a+(b-a)*t, out=[0,0,0];
+      for (let c=0;c<3;c++) { const c00=mix(c000[c],c100[c],tr), c10=mix(c010[c],c110[c],tr), c01=mix(c001[c],c101[c],tr), c11=mix(c011[c],c111[c],tr), c0=mix(c00,c10,tg), c1=mix(c01,c11,tg); out[c]=mix(c0,c1,tb); }
+      return out;
+    }
+
     function applyLUTToImageData(imageData) {
-      const mixAmount = Number(controls.lutMix.value);
-      const d = imageData.data;
+      const mixAmount = Number(controls.lutMix.value), d = imageData.data;
       for (let i = 0; i < d.length; i += 4) {
-        let r = d[i] / 255;
-        let g = d[i + 1] / 255;
-        let b = d[i + 2] / 255;
-
-        [r, g, b] = adjustColor(r, g, b);
-        const [lr, lg, lb] = getLutColor(r, g, b);
-
-        d[i] = Math.round((r + (lr - r) * mixAmount) * 255);
-        d[i + 1] = Math.round((g + (lg - g) * mixAmount) * 255);
-        d[i + 2] = Math.round((b + (lb - b) * mixAmount) * 255);
+        let r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255;
+        [r,g,b] = adjustColor(r,g,b);
+        const [lr,lg,lb] = getLutColor(r,g,b);
+        let outR = r + (lr - r) * mixAmount, outG = g + (lg - g) * mixAmount, outB = b + (lb - b) * mixAmount;
+        [outR,outG,outB] = transformOutput(outR,outG,outB);
+        d[i] = Math.round(Math.max(0, Math.min(1, outR)) * 255);
+        d[i + 1] = Math.round(Math.max(0, Math.min(1, outG)) * 255);
+        d[i + 2] = Math.round(Math.max(0, Math.min(1, outB)) * 255);
       }
       return imageData;
     }
 
-    function fitPreviewSize() {
-      const w = video.videoWidth || 1280;
-      const h = video.videoHeight || 720;
+    function fitPreviewSize(fullQuality = false) {
+      const w = video.videoWidth || 1280, h = video.videoHeight || 720;
       if (!w || !h) return;
       resolutionText.textContent = `${w}×${h}`;
-      previewCanvas.width = w;
-      previewCanvas.height = h;
-      offCanvas.width = w;
-      offCanvas.height = h;
+      const scale = fullQuality ? 1 : Number(previewQuality.value || 0.75);
+      const pw = Math.max(160, Math.round(w * scale)), ph = Math.max(90, Math.round(h * scale));
+      previewCanvas.width = pw; previewCanvas.height = ph; offCanvas.width = pw; offCanvas.height = ph;
     }
 
-    function renderPreview() {
-      if (!previewWithLUT) {
-        rafId = null;
-        return;
-      }
+    function drawSource(ctx, mirror) {
+      ctx.save(); ctx.clearRect(0,0,offCanvas.width,offCanvas.height);
+      if (mirror) { ctx.translate(offCanvas.width, 0); ctx.scale(-1, 1); }
+      ctx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height); ctx.restore();
+    }
+
+    function renderPreview(now = 0) {
+      if (!previewWithLUT) { rafId = null; return; }
+      const targetFps = Number(previewFps.value || 18), frameInterval = 1000 / Math.max(1, targetFps);
+      if (now && now - lastPreviewRenderTime < frameInterval) { rafId = requestAnimationFrame(renderPreview); return; }
       if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-        fitPreviewSize();
-        offCtx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height);
-        const frame = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
-        const processed = applyLUTToImageData(frame);
-        previewCtx.putImageData(processed, 0, 0);
+        lastPreviewRenderTime = now || performance.now();
+        fitPreviewSize(false); drawSource(offCtx, mirrorPreview);
+        const frame = offCtx.getImageData(0,0,offCanvas.width,offCanvas.height);
+        previewCtx.putImageData(applyLUTToImageData(frame), 0, 0);
       }
       rafId = requestAnimationFrame(renderPreview);
     }
@@ -469,44 +375,45 @@
     async function waitForFrame(timeout = 6000) {
       const start = Date.now();
       while (Date.now() - start < timeout) {
-        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-          return true;
-        }
+        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) return true;
         await new Promise(r => setTimeout(r, 120));
       }
       return false;
     }
 
     async function listCameras() {
+      if (!navigator.mediaDevices?.enumerateDevices) {
+        cameraSelect.innerHTML = '<option value="">Trình duyệt không hỗ trợ liệt kê camera</option>';
+        cameraListReady = false;
+        return;
+      }
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const cams = devices.filter(d => d.kind === 'videofunction renderPreview(now = 0) {
-      if (!previewWithLUT) {
-        rafId = null;
-        return;
-      }
-
-      const targetFps = Number(previewFps.value || 18);
-      const frameInterval = 1000 / Math.max(1, targetFps);
-      if (now && now - lastPreviewRenderTime < frameInterval) {
-        rafId = requestAnimationFrame(renderPreview);
-        return;
-      }
-
-      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-        lastPreviewRenderTime = now || performance.now();
-        fitPreviewSize(false);
-        offCtx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height);
-        const frame = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
-        const processed = applyLUTToImageData(frame);
-        previewCtx.putImageData(processed, 0, 0);
-      }
-      rafId = requestAnimationFrame(renderPreview);
-    }lue;
+      const cams = devices.filter(d => d.kind === 'videoinput');
+      const prev = selectedDeviceId || cameraSelect.value;
+      cameraSelect.innerHTML = '<option value="">Tự động chọn camera</option>';
+      cams.forEach((cam, i) => {
+        const opt = document.createElement('option');
+        opt.value = cam.deviceId;
+        opt.textContent = cam.label || `Camera ${i + 1}`;
+        cameraSelect.appendChild(opt);
+      });
+      if (cams.length) {
+        const found = cams.some(c => c.deviceId === prev);
+        cameraSelect.value = found ? prev : '';
+        selectedDeviceId = cameraSelect.value;
+        cameraListReady = true;
+        cameraHelp.innerHTML = 'Đã nhận camera. Bạn có thể chọn cụ thể hoặc để <b>Tự động chọn camera</b>.';
+      } else {
+        cameraSelect.value = '';
+        selectedDeviceId = '';
+        cameraListReady = false;
+        cameraHelp.innerHTML = 'Trình duyệt chưa liệt kê được camera. Cứ bấm <b>Bật camera</b> để xin quyền trước rồi app sẽ dò lại.';
       }
       switchBtn.disabled = !isMobile;
     }
 
     async function openCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('Trình duyệt không hỗ trợ camera hoặc trang chưa ở HTTPS/localhost.');
       const tries = [];
       if (selectedDeviceId) {
         tries.push({ video: { deviceId: { exact: selectedDeviceId } }, audio: false });
@@ -517,15 +424,10 @@
         tries.push({ video: { facingMode: { ideal: preferredFacingMode }, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
       }
       tries.push({ video: true, audio: false });
-
       let lastError = null;
-      for (const constraints of tries) {
-        try {
-          return await navigator.mediaDevices.getUserMedia(constraints);
-        } catch (err) {
-          lastError = err;
-          console.warn('Open camera failed:', constraints, err);
-        }
+      for (const c of tries) {
+        try { return await navigator.mediaDevices.getUserMedia(c); }
+        catch (e) { lastError = e; console.warn('Open camera failed:', c, e); }
       }
       throw lastError || new Error('Không mở được camera.');
     }
@@ -534,208 +436,95 @@
       if (isStarting) return;
       isStarting = true;
       statusText.textContent = 'Đang khởi động camera...';
-
       try {
         stopCamera(false);
-        selectedDeviceId = cameraSelect.value || selectedDeviceId;
+        selectedDeviceId = cameraSelect.value || '';
         stream = await openCamera();
-
-        video.setAttribute('autoplay', 'true');
-        video.setAttribute('muted', 'true');
-        video.setAttribute('playsinline', 'true');
-        video.setAttribute('webkit-playsinline', 'true');
-        video.muted = true;
-        video.playsInline = true;
-        video.srcObject = stream;
-
+        video.muted = true; video.playsInline = true; video.srcObject = stream;
         await new Promise(r => setTimeout(r, isMobile ? 250 : 80));
         try { await video.play(); } catch (_) {}
 
+        try {
+          await listCameras();
+          const activeTrack = stream?.getVideoTracks?.()[0];
+          const activeId = activeTrack?.getSettings?.().deviceId || '';
+          if (activeId) {
+            selectedDeviceId = activeId;
+            if (Array.from(cameraSelect.options).some(o => o.value === activeId)) cameraSelect.value = activeId;
+          }
+        } catch (_) {}
+
         const ok = await waitForFrame(isMobile ? 7000 : 5000);
         if (!ok) throw new Error('Thiết bị đã kết nối nhưng trình duyệt không nhận được khung hình.');
-
         fitPreviewSize();
         statusText.textContent = 'Camera đang chạy';
         liveDot.classList.add('live');
-
-        if (previewWithLUT) {
-          if (rafId) cancelAnimationFrame(rafId);
-          renderPreview();
-        }
+        if (previewWithLUT) { if (rafId) cancelAnimationFrame(rafId); renderPreview(); }
       } catch (err) {
         console.error(err);
         stopCamera(false);
         statusText.textContent = 'Lỗi mở camera';
         alert('Không thể dùng camera: ' + err.message + '. Trên mobile hãy mở qua HTTPS hoặc localhost.');
-      } finally {
-        isStarting = false;
-      }
+      } finally { isStarting = false; }
     }
 
     function stopCamera(resetText = true) {
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-        stream = null;
-      }
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
       try { video.pause(); } catch (_) {}
       video.srcObject = null;
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-      if (resetText) {
-        statusText.textContent = 'Chưa bật camera';
-        resolutionText.textContent = '-';
-      }
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      if (resetText) { statusText.textContent = 'Chưa bật camera'; resolutionText.textContent = '-'; }
       liveDot.classList.remove('live');
     }
 
     function loadLUTFromText(text, name = 'Custom LUT') {
-      lut = parseCube(text, name);
-      lutName.textContent = lut.title;
-      if (previewWithLUT && video.srcObject) {
-        if (rafId) cancelAnimationFrame(rafId);
-        renderPreview();
-      }
+      lut = parseCube(text, name); lutName.textContent = lut.title;
+      if (previewWithLUT && video.srcObject) { if (rafId) cancelAnimationFrame(rafId); renderPreview(); }
     }
 
     function capture() {
-      if (!video.srcObject || video.videoWidth === 0 || video.videoHeight === 0) {
-        alert('Camera chưa sẵn sàng.');
-        return;
-      }
-      fitPreviewSize();
-      offCtx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height);
-      const frame = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
-      const processed = applyLUTToImageData(frame);
-      offCtx.putImageData(processed, 0, 0);
-      const a = document.createElement('a');
-      a.href = offCanvas.toDataURL('image/png');
-      a.download = `capture-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
-      a.click();
+      if (!video.srcObject || video.videoWidth === 0 || video.videoHeight === 0) return alert('Camera chưa sẵn sàng.');
+      fitPreviewSize(true); drawSource(offCtx, mirrorCapture);
+      const frame = offCtx.getImageData(0,0,offCanvas.width,offCanvas.height);
+      offCtx.putImageData(applyLUTToImageData(frame), 0, 0);
+      const a = document.createElement('a'); a.href = offCanvas.toDataURL('image/png');
+      a.download = `capture-${new Date().toISOString().replace(/[:.]/g, '-')}.png`; a.click();
     }
 
     function resetControls() {
-      controls.lutMix.value = '1';
-      controls.exposure.value = '0';
-      controls.contrast.value = '1';
-      controls.saturation.value = '1';
-      controls.temperature.value = '0';
-      updateControlLabels();
-      if (previewWithLUT && video.srcObject) {
-        if (rafId) cancelAnimationFrame(rafId);
-        renderPreview();
-      }
+      controls.lutMix.value = '1'; controls.exposure.value = '0'; controls.contrast.value = '1'; controls.saturation.value = '1'; controls.temperature.value = '0';
+      updateControlLabels(); if (previewWithLUT && video.srcObject) lastPreviewRenderTime = 0;
     }
 
-    startfunction capture() {
-      if (!video.srcObject || video.videoWidth === 0 || video.videoHeight === 0) {
-        alert('Camera chưa sẵn sàng.');
-        return;
-      }
-      fitPreviewSize(true);
-      offCtx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height);user' ? 'environment' : 'user';
-      selectedDeviceId = '';
-      try { cameraSelect.value = ''; } catch (_) {}
-      await startCamera();
-    });
-
-    cameraSelect.addEventListener('change', async () => {
-      selectedDeviceId = cameraSelect.value;
-      if (stream) await startCamera();
-    });
-
-    lutFile.addEventListener('change', async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      try {
-        const text = await file.text();
-        loadLUTFromText(text, file.name);
-      } catch (err) {
-        alert('Không đọc được file LUT: ' + err.message);
-      }
-    });
-
-    loadTextBtn.addEventListener('click', () => {
-      const text = lutText.value.trim();
-      if (!text) return alert('Bạn chưa dán nội dung LUT.');
-      try {
-        loadLUTFromText(text, 'Pasted LUT');
-      } catch (err) {
-        alert('LUT không hợp lệ: ' + err.message);
-      }
-    });
-
+    startBtn.addEventListener('click', startCamera);
+    stopBtn.addEventListener('click', () => stopCamera());
+    retryBtn.addEventListener('click', startCamera);
+    switchBtn.addEventListener('click', async () => { preferredFacingMode = preferredFacingMode === 'user' ? 'environment' : 'user'; mirrorPreview = preferredFacingMode === 'user'; selectedDeviceId = ''; cameraSelect.value = ''; setModeText(); await startCamera(); });
+    toggleMirrorBtn.addEventListener('click', () => { mirrorPreview = !mirrorPreview; applyMirrorUI(); });
+    toggleCaptureMirrorBtn.addEventListener('click', () => { mirrorCapture = !mirrorCapture; applyMirrorUI(); });
+    cameraSelect.addEventListener('change', async () => { selectedDeviceId = cameraSelect.value || ''; if (stream) await startCamera(); });
+    lutFile.addEventListener('change', async (e) => { const file = e.target.files?.[0]; if (!file) return; try { loadLUTFromText(await file.text(), file.name); } catch (err) { alert('Không đọc được file LUT: ' + err.message); } });
+    loadTextBtn.addEventListener('click', () => { const text = lutText.value.trim(); if (!text) return alert('Bạn chưa dán nội dung LUT.'); try { loadLUTFromText(text, 'Pasted LUT'); } catch (err) { alert('LUT không hợp lệ: ' + err.message); } });
     clearTextBtn.addEventListener('click', () => { lutText.value = ''; });
-
-    togglePreviewBtn.addEventListener('click', () => {
-      previewWithLUT = !previewWithLUT;
-      setModeText();
-      if (previewWithLUT && video.srcObject) {
-        if (rafId) cancelAnimationFrame(rafId);
-        renderPreview();
-      } else if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-    });
-
-    rawPreviewBtn.addEventListener('click', () => {
-      previewWithLUT = false;
-      setModeText();
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-    });
-
+    togglePreviewBtn.addEventListener('click', () => { previewWithLUT = !previewWithLUT; lastPreviewRenderTime = 0; setModeText(); if (previewWithLUT && video.srcObject) { if (rafId) cancelAnimationFrame(rafId); renderPreview(); } else if (rafId) { cancelAnimationFrame(rafId); rafId = null; } });
+    rawPreviewBtn.addEventListener('click', () => { previewWithLUT = false; setModeText(); if (rafId) { cancelAnimationFrame(rafId); rafId = null; } });
     captureBtn.addEventListener('click', capture);
     resetBtn.addEventListener('click', resetControls);
-
-    Object.values(controls).forEach(el => el.addEventListener('input', () => {
-      updateControlLabels();
-      if (previewWithLUT && video.srcObject) {
-        if (rafId) cancelAnimationFrame(rafId);
-        renderPreview();
-      }
-    }));
+    inputSpace.addEventListener('change', () => { if (previewWithLUT && video.srcObject) lastPreviewRenderTime = 0; });
+    previewQuality.addEventListener('change', () => { if (previewWithLUT && video.srcObject) lastPreviewRenderTime = 0; });
+    previewFps.addEventListener('change', () => { if (previewWithLUT && video.srcObject) lastPreviewRenderTime = 0; });
+    Object.values(controls).forEach(el => el.addEventListener('input', () => { updateControlLabels(); if (previewWithLUT && video.srcObject) lastPreviewRenderTime = 0; }));
 
     navigator.mediaDevices?.addEventListener?.('devicechange', listCameras);
     window.addEventListener('beforeunload', () => stopCamera(false));
 
-   togglePreviewBtn.addEventListener('click', () => {
-      previewWithLUT = !previewWithLUT;
-      lastPreviewRenderTime = 0;
-      setModeText();
-      if (previewWithLUT && video.srcObject) {
-        if (rafId) cancelAnimationFrame(rafId);
-        renderPreview();
-      } else if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-    });rawPreviewBtn.addEventListener('click', () => {
-      previewWithLUT = false;
-      setModeText();
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-    });
-
-    previewQuality.addEventListener('change', () => {
-      if (previewWithLUT && video.srcObject) {
-        lastPreviewRenderTime = 0;
-      }
-    });
-
-    previewFps.addEventListener('change', () => {
-      if (previewWithLUT && video.srcObject) {
-        lastPreviewRenderTime = 0;
-      }
-    });Object.values(controls).forEach(el => el.addEventListener('input', () => {
-      updateControlLabels();
-      if (previewWithLUT && video.srcObject) {
-        lastPreviewRenderTime = 0;
-      }
-    }));
+    updateControlLabels();
+    mirrorPreview = preferredFacingMode === 'user';
+    setModeText();
+    (async () => {
+      try { await listCameras(); } catch (err) { console.warn('Không lấy được danh sách camera', err); }
+      statusText.textContent = cameraListReady ? 'Bấm Bật camera để bắt đầu' : 'Bấm Bật camera để xin quyền và tự dò camera';
+    })();
+  </script>
+</body>
+</html>
