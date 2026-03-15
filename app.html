@@ -297,6 +297,10 @@
           <button id="captureBtn">Chụp ảnh PNG</button>
           <button id="resetBtn">Reset thông số</button>
         </div>
+        <div class="row">
+          <button id="retryCameraBtn">Khởi động lại camera</button>
+          <button id="switchFacingBtn">Đổi trước / sau</button>
+        </div>
       </div>
 
       <div class="help">
@@ -329,6 +333,8 @@
     const stopBtn = document.getElementById('stopBtn');
     const captureBtn = document.getElementById('captureBtn');
     const resetBtn = document.getElementById('resetBtn');
+    const retryCameraBtn = document.getElementById('retryCameraBtn');
+    const switchFacingBtn = document.getElementById('switchFacingBtn');
     const lutFile = document.getElementById('lutFile');
     const lutText = document.getElementById('lutText');
     const loadLutTextBtn = document.getElementById('loadLutTextBtn');
@@ -368,6 +374,8 @@
     let selectedDeviceId = '';
     let isStartingCamera = false;
     let openAttempt = 0;
+    let preferredFacingMode = 'user';
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
 
     const vertexShaderSource = `
       attribute vec2 aPosition;
@@ -653,6 +661,9 @@
         cameraSelect.value = found ? previousValue : cams[0].deviceId;
         selectedDeviceId = cameraSelect.value;
       }
+
+      cameraSelect.disabled = !cams.length;
+      switchFacingBtn.disabled = !isMobile;
     }
 
     async function waitForVideoFrame(videoEl, timeout = 4000) {
@@ -734,6 +745,24 @@
         });
       }
 
+      if (isMobile) {
+        tries.push({
+          video: {
+            facingMode: { ideal: preferredFacingMode },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+
+        tries.push({
+          video: {
+            facingMode: preferredFacingMode
+          },
+          audio: false
+        });
+      }
+
       tries.push({ video: true, audio: false });
 
       let lastError = null;
@@ -764,31 +793,49 @@
         stream = await openPreferredStream();
         if (currentAttempt !== openAttempt) return;
 
-        video.srcObject = stream;
+        video.setAttribute('autoplay', 'true');
+        video.setAttribute('muted', 'true');
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
         video.muted = true;
         video.playsInline = true;
+        video.srcObject = stream;
+
+        await new Promise(resolve => setTimeout(resolve, isMobile ? 250 : 80));
 
         try {
           await video.play();
-        } catch (_) {}
+        } catch (playError) {
+          console.warn('video.play() lỗi, thử gọi lại sau một nhịp:', playError);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          try {
+            await video.play();
+          } catch (_) {}
+        }
 
-        let hasFrame = await waitForVideoFrame(video, 4000);
+        let hasFrame = await waitForVideoFrame(video, isMobile ? 6000 : 4000);
 
         if (!hasFrame) {
           console.warn('Không nhận được frame đầu tiên, thử mở lại stream tối giản.');
           stopCamera(false);
-          stream = selectedDeviceId
-            ? await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: selectedDeviceId } }, audio: false })
-            : await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          stream = isMobile
+            ? await navigator.mediaDevices.getUserMedia({ video: { facingMode: preferredFacingMode }, audio: false })
+            : (selectedDeviceId
+                ? await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: selectedDeviceId } }, audio: false })
+                : await navigator.mediaDevices.getUserMedia({ video: true, audio: false }));
           video.srcObject = stream;
+          await new Promise(resolve => setTimeout(resolve, isMobile ? 250 : 80));
           try {
             await video.play();
           } catch (_) {}
-          hasFrame = await waitForVideoFrame(video, 4000);
+          hasFrame = await waitForVideoFrame(video, isMobile ? 6000 : 4000);
         }
 
         if (!hasFrame || video.videoWidth === 0 || video.videoHeight === 0) {
-          throw new Error('Camera đã kết nối nhưng trình duyệt không nhận được khung hình. Hãy thử đổi camera hoặc đóng ứng dụng đang chiếm webcam.');
+          const track = stream?.getVideoTracks?.()[0];
+          const settings = track?.getSettings?.() || {};
+          const label = track?.label || 'unknown camera';
+          throw new Error(`Camera đã kết nối nhưng trình duyệt không nhận được khung hình. Thiết bị: ${label}. ${settings.width || '?'}x${settings.height || '?'}`);
         }
 
         resizeCanvasToVideo();
@@ -867,6 +914,17 @@
       }
     });
 
+    retryCameraBtn.addEventListener('click', async () => {
+      await startCamera();
+    });
+
+    switchFacingBtn.addEventListener('click', async () => {
+      preferredFacingMode = preferredFacingMode === 'user' ? 'environment' : 'user';
+      selectedDeviceId = '';
+      cameraSelect.value = '';
+      await startCamera();
+    });
+
     startBtn.addEventListener('click', startCamera);
     stopBtn.addEventListener('click', stopCamera);
     captureBtn.addEventListener('click', captureImage);
@@ -920,6 +978,10 @@
         await listCameras();
       } catch (error) {
         console.warn('Không thể lấy danh sách camera', error);
+      }
+
+      if (isMobile) {
+        statusText.textContent = 'Chọn camera rồi bấm Bật camera';
       }
     })();
   </script>
