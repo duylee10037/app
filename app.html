@@ -12,7 +12,6 @@
       --text: #eef4ff;
       --muted: #a0b2cc;
       --border: #2a3950;
-      --accent: #4aa3ff;
       --danger: #ff6b6b;
       --ok: #34c759;
     }
@@ -71,7 +70,6 @@
     button.primary { background: linear-gradient(135deg, #2f88ff, #66b7ff); border: none; }
     button.danger { color: #ffc1c1; background: rgba(255,107,107,.08); border-color: rgba(255,107,107,.2); }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .triple { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
     .stat {
       background: rgba(255,255,255,.04);
       border: 1px solid rgba(255,255,255,.06);
@@ -576,4 +574,135 @@
         rafId = null;
       }
       if (resetText) {
-        statusText.textContent = 'Chưa
+        statusText.textContent = 'Chưa bật camera';
+        resolutionText.textContent = '-';
+      }
+      liveDot.classList.remove('live');
+    }
+
+    function loadLUTFromText(text, name = 'Custom LUT') {
+      lut = parseCube(text, name);
+      lutName.textContent = lut.title;
+      if (previewWithLUT && video.srcObject) {
+        if (rafId) cancelAnimationFrame(rafId);
+        renderPreview();
+      }
+    }
+
+    function capture() {
+      if (!video.srcObject || video.videoWidth === 0 || video.videoHeight === 0) {
+        alert('Camera chưa sẵn sàng.');
+        return;
+      }
+      fitPreviewSize();
+      offCtx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height);
+      const frame = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+      const processed = applyLUTToImageData(frame);
+      offCtx.putImageData(processed, 0, 0);
+      const a = document.createElement('a');
+      a.href = offCanvas.toDataURL('image/png');
+      a.download = `capture-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+      a.click();
+    }
+
+    function resetControls() {
+      controls.lutMix.value = '1';
+      controls.exposure.value = '0';
+      controls.contrast.value = '1';
+      controls.saturation.value = '1';
+      controls.temperature.value = '0';
+      updateControlLabels();
+      if (previewWithLUT && video.srcObject) {
+        if (rafId) cancelAnimationFrame(rafId);
+        renderPreview();
+      }
+    }
+
+    startBtn.addEventListener('click', startCamera);
+    stopBtn.addEventListener('click', () => stopCamera());
+    retryBtn.addEventListener('click', startCamera);
+    switchBtn.addEventListener('click', async () => {
+      preferredFacingMode = preferredFacingMode === 'user' ? 'environment' : 'user';
+      selectedDeviceId = '';
+      try { cameraSelect.value = ''; } catch (_) {}
+      await startCamera();
+    });
+
+    cameraSelect.addEventListener('change', async () => {
+      selectedDeviceId = cameraSelect.value;
+      if (stream) await startCamera();
+    });
+
+    lutFile.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        loadLUTFromText(text, file.name);
+      } catch (err) {
+        alert('Không đọc được file LUT: ' + err.message);
+      }
+    });
+
+    loadTextBtn.addEventListener('click', () => {
+      const text = lutText.value.trim();
+      if (!text) return alert('Bạn chưa dán nội dung LUT.');
+      try {
+        loadLUTFromText(text, 'Pasted LUT');
+      } catch (err) {
+        alert('LUT không hợp lệ: ' + err.message);
+      }
+    });
+
+    clearTextBtn.addEventListener('click', () => { lutText.value = ''; });
+
+    togglePreviewBtn.addEventListener('click', () => {
+      previewWithLUT = !previewWithLUT;
+      setModeText();
+      if (previewWithLUT && video.srcObject) {
+        if (rafId) cancelAnimationFrame(rafId);
+        renderPreview();
+      } else if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    });
+
+    rawPreviewBtn.addEventListener('click', () => {
+      previewWithLUT = false;
+      setModeText();
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    });
+
+    captureBtn.addEventListener('click', capture);
+    resetBtn.addEventListener('click', resetControls);
+
+    Object.values(controls).forEach(el => el.addEventListener('input', () => {
+      updateControlLabels();
+      if (previewWithLUT && video.srcObject) {
+        if (rafId) cancelAnimationFrame(rafId);
+        renderPreview();
+      }
+    }));
+
+    navigator.mediaDevices?.addEventListener?.('devicechange', listCameras);
+    window.addEventListener('beforeunload', () => stopCamera(false));
+
+    updateControlLabels();
+    setModeText();
+    (async () => {
+      try {
+        await listCameras();
+      } catch (err) {
+        console.warn('Không lấy được danh sách camera', err);
+      }
+      if (isMobile) {
+        statusText.textContent = 'Bấm Bật camera để bắt đầu';
+      }
+    })();
+  </script>
+</body>
+</html>
