@@ -2,192 +2,140 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Webcam + Blackmagic LUT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Webcam + LUT CUBE</title>
   <style>
     :root {
-      --bg: #0b0d12;
-      --panel: #121722;
-      --panel-2: #1a2230;
-      --text: #e9eef9;
-      --muted: #9fb0c9;
-      --accent: #3aa0ff;
-      --danger: #ff5d5d;
-      --ok: #35c26b;
-      --border: #263247;
+      --bg: #0b0f14;
+      --panel: #121923;
+      --panel2: #1a2431;
+      --text: #eef4ff;
+      --muted: #a0b2cc;
+      --border: #2a3950;
+      --accent: #4aa3ff;
+      --danger: #ff6b6b;
+      --ok: #34c759;
     }
-
     * { box-sizing: border-box; }
-
     body {
       margin: 0;
       font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: linear-gradient(180deg, #0a0c11 0%, #10141d 100%);
+      background: linear-gradient(180deg, #0a0d12, #0f141d);
       color: var(--text);
     }
-
     .app {
+      min-height: 100vh;
       display: grid;
       grid-template-columns: 360px 1fr;
-      min-height: 100vh;
       gap: 16px;
       padding: 16px;
     }
-
     .panel {
-      background: rgba(18, 23, 34, 0.95);
+      background: rgba(18,25,35,.95);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 18px;
-      box-shadow: 0 14px 40px rgba(0,0,0,0.25);
-      backdrop-filter: blur(10px);
+      padding: 16px;
+      box-shadow: 0 14px 36px rgba(0,0,0,.25);
     }
-
-    .sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .title {
-      font-size: 22px;
-      font-weight: 700;
-      margin: 0 0 6px;
-    }
-
-    .subtitle {
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
+    .sidebar { display: flex; flex-direction: column; gap: 14px; }
+    .title { margin: 0 0 6px; font-size: 22px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
     .section {
+      border-top: 1px solid rgba(255,255,255,.07);
+      padding-top: 10px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255,255,255,0.06);
     }
-
     label {
+      display: block;
       font-size: 13px;
       color: var(--muted);
-      display: block;
       margin-bottom: 6px;
     }
-
-    input[type="range"], select, input[type="file"], button {
+    select, button, input[type="file"], textarea {
       width: 100%;
-    }
-
-    button, select, input[type="file"] {
-      background: var(--panel-2);
+      background: var(--panel2);
       color: var(--text);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 11px 12px;
       font-size: 14px;
     }
-
-    button {
-      cursor: pointer;
-      transition: 0.18s ease;
-      font-weight: 600;
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
-
-    button:hover { transform: translateY(-1px); border-color: #3f5377; }
-    button.primary { background: linear-gradient(135deg, #1783ff 0%, #57b2ff 100%); border: none; }
-    button.danger { background: rgba(255, 93, 93, 0.1); color: #ffb1b1; border-color: rgba(255, 93, 93, 0.2); }
-
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
+    button { cursor: pointer; font-weight: 600; }
+    button.primary { background: linear-gradient(135deg, #2f88ff, #66b7ff); border: none; }
+    button.danger { color: #ffc1c1; background: rgba(255,107,107,.08); border-color: rgba(255,107,107,.2); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .triple { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
     .stat {
-      padding: 10px 12px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.06);
       border-radius: 12px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.06);
+      padding: 10px 12px;
       font-size: 13px;
+      color: var(--muted);
     }
-
-    .stat strong {
-      display: block;
-      font-size: 15px;
-      margin-top: 4px;
-      color: var(--text);
-    }
-
-    .viewer {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .stage {
-      position: relative;
-      overflow: hidden;
-      border-radius: 24px;
-      border: 1px solid var(--border);
-      background: #06080d;
-      min-height: 72vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    canvas {
-      width: 100%;
-      height: auto;
-      display: block;
-      max-height: 80vh;
-      object-fit: contain;
-      background: #000;
-    }
-
-    video { display: none; }
-
-    .topbar {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
+    .stat strong { display: block; color: var(--text); font-size: 15px; margin-top: 4px; }
+    .viewer { display: flex; flex-direction: column; gap: 14px; }
+    .topbar { display: flex; flex-wrap: wrap; gap: 10px; }
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       padding: 8px 10px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
       color: var(--muted);
       font-size: 13px;
     }
-
     .dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: var(--danger);
-      box-shadow: 0 0 12px rgba(255,93,93,0.55);
+      box-shadow: 0 0 10px rgba(255,107,107,.5);
     }
-
-    .dot.live { background: var(--ok); box-shadow: 0 0 12px rgba(53,194,107,0.55); }
-
-    .help {
+    .dot.live { background: var(--ok); box-shadow: 0 0 10px rgba(52,199,89,.5); }
+    .stage {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #000;
+      min-height: 70vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    video, canvas {
+      width: 100%;
+      height: auto;
+      max-height: 80vh;
+      object-fit: contain;
+      display: block;
+      background: #000;
+    }
+    #previewCanvas { display: none; }
+    .hint {
       font-size: 12px;
       color: var(--muted);
-      line-height: 1.5;
-      padding: 10px 12px;
+      line-height: 1.55;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
       border-radius: 12px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
+      padding: 10px 12px;
     }
-
+    .warn {
+      background: rgba(255, 194, 0, .08);
+      border-color: rgba(255, 194, 0, .18);
+      color: #ffe49a;
+    }
     .value-line {
       display: flex;
       justify-content: space-between;
@@ -196,20 +144,10 @@
       color: var(--muted);
       margin-bottom: 6px;
     }
-
-    .footer-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
+    input[type="range"] { width: 100%; }
     @media (max-width: 980px) {
-      .app {
-        grid-template-columns: 1fr;
-      }
-      .stage {
-        min-height: 50vh;
-      }
+      .app { grid-template-columns: 1fr; }
+      .stage { min-height: 46vh; }
     }
   </style>
 </head>
@@ -217,15 +155,17 @@
   <div class="app">
     <aside class="panel sidebar">
       <div>
-        <h1 class="title">Webcam + LUT Blackmagic</h1>
-        <p class="subtitle">
-          Chụp ảnh từ webcam và áp file LUT <code>.cube</code> trực tiếp trên trình duyệt bằng WebGL.
-        </p>
+        <h1 class="title">Webcam + LUT .cube</h1>
+        <p class="subtitle">Bản ưu tiên tương thích mobile, DroidCam và webcam rời. Preview mặc định là video gốc, LUT được áp khi bật preview LUT hoặc khi chụp ảnh.</p>
       </div>
 
       <div class="row">
         <div class="stat">Nguồn ảnh<strong>Webcam</strong></div>
-        <div class="stat">Xử lý màu<strong>3D LUT</strong></div>
+        <div class="stat">LUT<strong>3D .cube</strong></div>
+      </div>
+
+      <div id="secureWarning" class="hint warn" style="display:none;">
+        Camera trên mobile thường chỉ hoạt động khi mở trang bằng HTTPS hoặc localhost. Nếu bạn đang mở file trực tiếp hoặc HTTP thường, camera có thể không chạy.
       </div>
 
       <div class="section">
@@ -237,6 +177,10 @@
           <button id="startBtn" class="primary">Bật camera</button>
           <button id="stopBtn" class="danger">Tắt camera</button>
         </div>
+        <div class="row">
+          <button id="retryBtn">Khởi động lại</button>
+          <button id="switchBtn">Đổi trước / sau</button>
+        </div>
       </div>
 
       <div class="section">
@@ -246,104 +190,100 @@
         </div>
         <div>
           <label for="lutText">Hoặc dán nội dung file .cube</label>
-          <textarea id="lutText" rows="6" placeholder="Dán toàn bộ nội dung file .cube vào đây nếu điện thoại không chọn được file..." style="width:100%;resize:vertical;background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:11px 12px;font-size:13px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;"></textarea>
+          <textarea id="lutText" placeholder="Dán toàn bộ nội dung .cube vào đây..."></textarea>
         </div>
         <div class="row">
-          <button id="loadLutTextBtn">Nạp LUT từ nội dung dán</button>
-          <button id="clearLutTextBtn">Xóa nội dung dán</button>
-        </div>
-        <div>
-          <div class="value-line">
-            <span>Cường độ LUT</span>
-            <span id="lutMixValue">100%</span>
-          </div>
-          <input id="lutMix" type="range" min="0" max="1" step="0.01" value="1" />
+          <button id="loadTextBtn">Nạp LUT từ nội dung dán</button>
+          <button id="clearTextBtn">Xóa nội dung</button>
         </div>
       </div>
 
       <div class="section">
         <div>
-          <div class="value-line">
-            <span>Exposure</span>
-            <span id="exposureValue">0.00</span>
-          </div>
+          <div class="value-line"><span>Cường độ LUT</span><span id="lutMixValue">100%</span></div>
+          <input id="lutMix" type="range" min="0" max="1" step="0.01" value="1" />
+        </div>
+        <div>
+          <div class="value-line"><span>Exposure</span><span id="exposureValue">0.00</span></div>
           <input id="exposure" type="range" min="-2" max="2" step="0.01" value="0" />
         </div>
         <div>
-          <div class="value-line">
-            <span>Contrast</span>
-            <span id="contrastValue">1.00</span>
-          </div>
+          <div class="value-line"><span>Contrast</span><span id="contrastValue">1.00</span></div>
           <input id="contrast" type="range" min="0.5" max="2" step="0.01" value="1" />
         </div>
         <div>
-          <div class="value-line">
-            <span>Saturation</span>
-            <span id="saturationValue">1.00</span>
-          </div>
+          <div class="value-line"><span>Saturation</span><span id="saturationValue">1.00</span></div>
           <input id="saturation" type="range" min="0" max="2" step="0.01" value="1" />
         </div>
         <div>
-          <div class="value-line">
-            <span>Temperature</span>
-            <span id="temperatureValue">0.00</span>
-          </div>
+          <div class="value-line"><span>Temperature</span><span id="temperatureValue">0.00</span></div>
           <input id="temperature" type="range" min="-1" max="1" step="0.01" value="0" />
         </div>
       </div>
 
       <div class="section">
-        <div class="footer-actions">
-          <button id="captureBtn">Chụp ảnh PNG</button>
-          <button id="resetBtn">Reset thông số</button>
+        <div class="row">
+          <button id="togglePreviewBtn">Bật preview LUT</button>
+          <button id="captureBtn">Chụp PNG</button>
         </div>
         <div class="row">
-          <button id="retryCameraBtn">Khởi động lại camera</button>
-          <button id="switchFacingBtn">Đổi trước / sau</button>
+          <button id="resetBtn">Reset thông số</button>
+          <button id="rawPreviewBtn">Xem video gốc</button>
         </div>
       </div>
 
-      <div class="help">
-        Lưu ý: file <code>.cube</code> sẽ được parse trong trình duyệt. LUT 3D dạng <code>LUT_3D_SIZE</code> hoạt động tốt nhất.
-        LUT 1D và các metadata đặc biệt chưa được hỗ trợ trong bản tối giản này.
+      <div class="hint">
+        Bản này ưu tiên ổn định. Nếu mobile yếu, hãy để preview ở video gốc và chỉ áp LUT khi chụp để nhẹ hơn.
       </div>
     </aside>
 
     <main class="panel viewer">
       <div class="topbar">
-        <div class="badge"><span id="liveDot" class="dot"></span> <span id="statusText">Chưa bật camera</span></div>
-        <div class="badge">LUT: <strong id="lutName">Chưa nạp</strong></div>
+        <div class="badge"><span id="liveDot" class="dot"></span><span id="statusText">Chưa bật camera</span></div>
+        <div class="badge">LUT: <strong id="lutName">Neutral LUT</strong></div>
         <div class="badge">Độ phân giải: <strong id="resolutionText">-</strong></div>
+        <div class="badge">Mode: <strong id="modeText">Video gốc</strong></div>
       </div>
 
       <div class="stage">
-        <video id="video" autoplay playsinline muted></video>
-        <canvas id="glcanvas"></canvas>
+        <video id="video" autoplay muted playsinline webkit-playsinline></video>
+        <canvas id="previewCanvas"></canvas>
       </div>
     </main>
   </div>
 
   <script>
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    const secureWarning = document.getElementById('secureWarning');
+    if (!window.isSecureContext && !/localhost|127\.0\.0\.1/.test(location.hostname)) {
+      secureWarning.style.display = 'block';
+    }
+
     const video = document.getElementById('video');
-    const canvas = document.getElementById('glcanvas');
-    const gl = canvas.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true });
+    const previewCanvas = document.getElementById('previewCanvas');
+    const previewCtx = previewCanvas.getContext('2d', { willReadFrequently: true });
+    const offCanvas = document.createElement('canvas');
+    const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
 
     const cameraSelect = document.getElementById('cameraSelect');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
-    const captureBtn = document.getElementById('captureBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const retryCameraBtn = document.getElementById('retryCameraBtn');
-    const switchFacingBtn = document.getElementById('switchFacingBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const switchBtn = document.getElementById('switchBtn');
     const lutFile = document.getElementById('lutFile');
     const lutText = document.getElementById('lutText');
-    const loadLutTextBtn = document.getElementById('loadLutTextBtn');
-    const clearLutTextBtn = document.getElementById('clearLutTextBtn');
+    const loadTextBtn = document.getElementById('loadTextBtn');
+    const clearTextBtn = document.getElementById('clearTextBtn');
+    const togglePreviewBtn = document.getElementById('togglePreviewBtn');
+    const rawPreviewBtn = document.getElementById('rawPreviewBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const resetBtn = document.getElementById('resetBtn');
 
     const statusText = document.getElementById('statusText');
     const liveDot = document.getElementById('liveDot');
     const lutName = document.getElementById('lutName');
     const resolutionText = document.getElementById('resolutionText');
+    const modeText = document.getElementById('modeText');
 
     const controls = {
       lutMix: document.getElementById('lutMix'),
@@ -352,7 +292,6 @@
       saturation: document.getElementById('saturation'),
       temperature: document.getElementById('temperature')
     };
-
     const valueEls = {
       lutMix: document.getElementById('lutMixValue'),
       exposure: document.getElementById('exposureValue'),
@@ -361,437 +300,237 @@
       temperature: document.getElementById('temperatureValue')
     };
 
-    if (!gl) {
-      alert('Trình duyệt không hỗ trợ WebGL.');
-      throw new Error('WebGL not supported');
-    }
-
     let stream = null;
-    let videoTexture = null;
-    let lutTexture = null;
-    let lutSize = 2;
-    let animationId = null;
     let selectedDeviceId = '';
-    let isStartingCamera = false;
-    let openAttempt = 0;
     let preferredFacingMode = 'user';
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    let isStarting = false;
+    let rafId = null;
+    let previewWithLUT = false;
 
-    const vertexShaderSource = `
-      attribute vec2 aPosition;
-      attribute vec2 aTexCoord;
-      varying vec2 vTexCoord;
-      void main() {
-        gl_Position = vec4(aPosition, 0.0, 1.0);
-        vTexCoord = vec2(aTexCoord.x, 1.0 - aTexCoord.y);
-      }
-    `;
+    let lut = createNeutralLUT(16);
 
-    const fragmentShaderSource = `
-      precision mediump float;
-      varying vec2 vTexCoord;
-      uniform sampler2D uVideo;
-      uniform sampler2D uLUT;
-      uniform float uLutSize;
-      uniform float uLutMix;
-      uniform float uExposure;
-      uniform float uContrast;
-      uniform float uSaturation;
-      uniform float uTemperature;
-
-      vec3 adjustColor(vec3 color) {
-        color *= pow(2.0, uExposure);
-        color = (color - 0.5) * uContrast + 0.5;
-
-        float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-        color = mix(vec3(luma), color, uSaturation);
-
-        color.r += uTemperature * 0.08;
-        color.b -= uTemperature * 0.08;
-        return clamp(color, 0.0, 1.0);
-      }
-
-      vec3 sampleAs3DLUT(vec3 color) {
-        float size = uLutSize;
-        float sliceSize = 1.0 / size;
-        float slicePixelSize = sliceSize / size;
-        float sliceInnerSize = slicePixelSize * (size - 1.0);
-        float zSlice0 = min(floor(color.b * (size - 1.0)), size - 1.0);
-        float zSlice1 = min(zSlice0 + 1.0, size - 1.0);
-        float zOffset = fract(color.b * (size - 1.0));
-
-        vec2 slice0;
-        slice0.x = zSlice0 * sliceSize + slicePixelSize * 0.5 + color.r * sliceInnerSize;
-        slice0.y = slicePixelSize * 0.5 + color.g * sliceInnerSize;
-
-        vec2 slice1;
-        slice1.x = zSlice1 * sliceSize + slicePixelSize * 0.5 + color.r * sliceInnerSize;
-        slice1.y = slicePixelSize * 0.5 + color.g * sliceInnerSize;
-
-        vec3 sample0 = texture2D(uLUT, slice0).rgb;
-        vec3 sample1 = texture2D(uLUT, slice1).rgb;
-        return mix(sample0, sample1, zOffset);
-      }
-
-      void main() {
-        vec3 color = texture2D(uVideo, vTexCoord).rgb;
-        color = adjustColor(color);
-        vec3 lutColor = sampleAs3DLUT(color);
-        gl_FragColor = vec4(mix(color, lutColor, uLutMix), 1.0);
-      }
-    `;
-
-    function createShader(type, source) {
-      const shader = gl.createShader(type);
-      gl.shaderSource(shader, source);
-      gl.compileShader(shader);
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        const log = gl.getShaderInfoLog(shader);
-        gl.deleteShader(shader);
-        throw new Error(log);
-      }
-      return shader;
+    function updateControlLabels() {
+      valueEls.lutMix.textContent = `${Math.round(Number(controls.lutMix.value) * 100)}%`;
+      valueEls.exposure.textContent = Number(controls.exposure.value).toFixed(2);
+      valueEls.contrast.textContent = Number(controls.contrast.value).toFixed(2);
+      valueEls.saturation.textContent = Number(controls.saturation.value).toFixed(2);
+      valueEls.temperature.textContent = Number(controls.temperature.value).toFixed(2);
     }
 
-    function createProgram(vsSource, fsSource) {
-      const vs = createShader(gl.VERTEX_SHADER, vsSource);
-      const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
-      const program = gl.createProgram();
-      gl.attachShader(program, vs);
-      gl.attachShader(program, fs);
-      gl.linkProgram(program);
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        const log = gl.getProgramInfoLog(program);
-        throw new Error(log);
-      }
-      return program;
+    function setModeText() {
+      modeText.textContent = previewWithLUT ? 'Preview LUT' : 'Video gốc';
+      video.style.display = previewWithLUT ? 'none' : 'block';
+      previewCanvas.style.display = previewWithLUT ? 'block' : 'none';
+      togglePreviewBtn.textContent = previewWithLUT ? 'Tắt preview LUT' : 'Bật preview LUT';
     }
 
-    const program = createProgram(vertexShaderSource, fragmentShaderSource);
-    gl.useProgram(program);
-
-    const quadBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([
-        -1, -1, 0, 0,
-         1, -1, 1, 0,
-        -1,  1, 0, 1,
-        -1,  1, 0, 1,
-         1, -1, 1, 0,
-         1,  1, 1, 1
-      ]),
-      gl.STATIC_DRAW
-    );
-
-    const aPosition = gl.getAttribLocation(program, 'aPosition');
-    const aTexCoord = gl.getAttribLocation(program, 'aTexCoord');
-    gl.enableVertexAttribArray(aPosition);
-    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 16, 0);
-    gl.enableVertexAttribArray(aTexCoord);
-    gl.vertexAttribPointer(aTexCoord, 2, gl.FLOAT, false, 16, 8);
-
-    const uniforms = {
-      uVideo: gl.getUniformLocation(program, 'uVideo'),
-      uLUT: gl.getUniformLocation(program, 'uLUT'),
-      uLutSize: gl.getUniformLocation(program, 'uLutSize'),
-      uLutMix: gl.getUniformLocation(program, 'uLutMix'),
-      uExposure: gl.getUniformLocation(program, 'uExposure'),
-      uContrast: gl.getUniformLocation(program, 'uContrast'),
-      uSaturation: gl.getUniformLocation(program, 'uSaturation'),
-      uTemperature: gl.getUniformLocation(program, 'uTemperature')
-    };
-
-    function createVideoTexture() {
-      const tex = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.bindTexture(gl.TEXTURE_2D, null);
-      return tex;
-    }
-
-    function createNeutralLUT(size = 32) {
-      const width = size * size;
-      const height = size;
-      const data = new Uint8Array(width * height * 4);
-      let ptr = 0;
+    function createNeutralLUT(size = 16) {
+      const data = new Float32Array(size * size * size * 3);
+      let p = 0;
       for (let b = 0; b < size; b++) {
         for (let g = 0; g < size; g++) {
           for (let r = 0; r < size; r++) {
-            data[ptr++] = Math.round((r / (size - 1)) * 255);
-            data[ptr++] = Math.round((g / (size - 1)) * 255);
-            data[ptr++] = Math.round((b / (size - 1)) * 255);
-            data[ptr++] = 255;
+            data[p++] = r / (size - 1);
+            data[p++] = g / (size - 1);
+            data[p++] = b / (size - 1);
           }
         }
       }
-      return { size, width, height, data, title: 'Neutral LUT' };
-    }
-
-    function uploadLUTTexture(lut) {
-      lutSize = lut.size;
-      if (!lutTexture) lutTexture = gl.createTexture();
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, lutTexture);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, lut.width, lut.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, lut.data);
-      gl.uniform1i(uniforms.uLUT, 1);
-      gl.uniform1f(uniforms.uLutSize, lut.size);
-      lutName.textContent = lut.title || `LUT ${lut.size}`;
+      return { size, data, title: 'Neutral LUT' };
     }
 
     function parseCube(text, fileName = 'Custom LUT') {
       const lines = text.split(/\r?\n/);
       let size = 0;
       const values = [];
-
-      for (const rawLine of lines) {
-        const line = rawLine.trim();
+      for (const raw of lines) {
+        const line = raw.trim();
         if (!line || line.startsWith('#')) continue;
-        if (line.startsWith('TITLE')) continue;
-        if (line.startsWith('DOMAIN_MIN')) continue;
-        if (line.startsWith('DOMAIN_MAX')) continue;
-        if (line.startsWith('LUT_1D_SIZE')) {
-          throw new Error('Bản này chưa hỗ trợ LUT 1D. Hãy dùng LUT_3D_SIZE.');
-        }
+        if (line.startsWith('TITLE') || line.startsWith('DOMAIN_MIN') || line.startsWith('DOMAIN_MAX')) continue;
+        if (line.startsWith('LUT_1D_SIZE')) throw new Error('Bản này chỉ hỗ trợ LUT 3D.');
         if (line.startsWith('LUT_3D_SIZE')) {
           const parts = line.split(/\s+/);
           size = parseInt(parts[1], 10);
           continue;
         }
-
         const nums = line.split(/\s+/).map(Number);
         if (nums.length >= 3 && nums.every(n => !Number.isNaN(n))) {
           values.push(nums[0], nums[1], nums[2]);
         }
       }
-
-      if (!size) throw new Error('Không tìm thấy LUT_3D_SIZE trong file .cube');
+      if (!size) throw new Error('Không tìm thấy LUT_3D_SIZE.');
       const expected = size * size * size * 3;
-      if (values.length < expected) {
-        throw new Error(`Dữ liệu LUT không đủ. Cần ${expected / 3} điểm màu, hiện có ${values.length / 3}.`);
-      }
-
-      const width = size * size;
-      const height = size;
-      const data = new Uint8Array(width * height * 4);
-      let ptr = 0;
-
-      for (let i = 0; i < expected; i += 3) {
-        data[ptr++] = Math.max(0, Math.min(255, Math.round(values[i] * 255)));
-        data[ptr++] = Math.max(0, Math.min(255, Math.round(values[i + 1] * 255)));
-        data[ptr++] = Math.max(0, Math.min(255, Math.round(values[i + 2] * 255)));
-        data[ptr++] = 255;
-      }
-
-      return { size, width, height, data, title: fileName };
+      if (values.length < expected) throw new Error('Dữ liệu LUT không đủ.');
+      const data = new Float32Array(expected);
+      for (let i = 0; i < expected; i++) data[i] = Math.max(0, Math.min(1, values[i]));
+      return { size, data, title: fileName };
     }
 
-    function resizeCanvasToVideo() {
-      const w = video.videoWidth || 1280;
-      const h = video.videoHeight || 720;
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
-        gl.viewport(0, 0, w, h);
-        resolutionText.textContent = `${w}×${h}`;
+    function getLutColor(r, g, b) {
+      const size = lut.size;
+      const rf = r * (size - 1);
+      const gf = g * (size - 1);
+      const bf = b * (size - 1);
+
+      const r0 = Math.floor(rf), g0 = Math.floor(gf), b0 = Math.floor(bf);
+      const r1 = Math.min(r0 + 1, size - 1), g1 = Math.min(g0 + 1, size - 1), b1 = Math.min(b0 + 1, size - 1);
+      const tr = rf - r0, tg = gf - g0, tb = bf - b0;
+
+      const idx = (rr, gg, bb) => ((bb * size * size) + (gg * size) + rr) * 3;
+      const sample = (rr, gg, bb) => {
+        const i = idx(rr, gg, bb);
+        return [lut.data[i], lut.data[i + 1], lut.data[i + 2]];
+      };
+
+      const c000 = sample(r0, g0, b0), c100 = sample(r1, g0, b0), c010 = sample(r0, g1, b0), c110 = sample(r1, g1, b0);
+      const c001 = sample(r0, g0, b1), c101 = sample(r1, g0, b1), c011 = sample(r0, g1, b1), c111 = sample(r1, g1, b1);
+
+      const mix = (a, b, t) => a + (b - a) * t;
+      const out = [0, 0, 0];
+      for (let c = 0; c < 3; c++) {
+        const c00 = mix(c000[c], c100[c], tr);
+        const c10 = mix(c010[c], c110[c], tr);
+        const c01 = mix(c001[c], c101[c], tr);
+        const c11 = mix(c011[c], c111[c], tr);
+        const c0 = mix(c00, c10, tg);
+        const c1 = mix(c01, c11, tg);
+        out[c] = mix(c0, c1, tb);
       }
+      return out;
     }
 
-    function updateUniforms() {
-      const lutMix = Number(controls.lutMix.value);
+    function adjustColor(r, g, b) {
       const exposure = Number(controls.exposure.value);
       const contrast = Number(controls.contrast.value);
       const saturation = Number(controls.saturation.value);
       const temperature = Number(controls.temperature.value);
 
-      valueEls.lutMix.textContent = `${Math.round(lutMix * 100)}%`;
-      valueEls.exposure.textContent = exposure.toFixed(2);
-      valueEls.contrast.textContent = contrast.toFixed(2);
-      valueEls.saturation.textContent = saturation.toFixed(2);
-      valueEls.temperature.textContent = temperature.toFixed(2);
+      r *= Math.pow(2, exposure);
+      g *= Math.pow(2, exposure);
+      b *= Math.pow(2, exposure);
 
-      gl.uniform1f(uniforms.uLutMix, lutMix);
-      gl.uniform1f(uniforms.uExposure, exposure);
-      gl.uniform1f(uniforms.uContrast, contrast);
-      gl.uniform1f(uniforms.uSaturation, saturation);
-      gl.uniform1f(uniforms.uTemperature, temperature);
+      r = (r - 0.5) * contrast + 0.5;
+      g = (g - 0.5) * contrast + 0.5;
+      b = (b - 0.5) * contrast + 0.5;
+
+      const luma = r * 0.2126 + g * 0.7152 + b * 0.0722;
+      r = luma + (r - luma) * saturation;
+      g = luma + (g - luma) * saturation;
+      b = luma + (b - luma) * saturation;
+
+      r += temperature * 0.08;
+      b -= temperature * 0.08;
+
+      return [Math.max(0, Math.min(1, r)), Math.max(0, Math.min(1, g)), Math.max(0, Math.min(1, b))];
     }
 
-    function render() {
-      try {
-        if (video.srcObject && !video.paused && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-          resizeCanvasToVideo();
-          gl.activeTexture(gl.TEXTURE0);
-          gl.bindTexture(gl.TEXTURE_2D, videoTexture);
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-          gl.uniform1i(uniforms.uVideo, 0);
-          updateUniforms();
-          gl.drawArrays(gl.TRIANGLES, 0, 6);
-        }
-      } catch (error) {
-        console.warn('Render frame lỗi:', error);
+    function applyLUTToImageData(imageData) {
+      const mixAmount = Number(controls.lutMix.value);
+      const d = imageData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        let r = d[i] / 255;
+        let g = d[i + 1] / 255;
+        let b = d[i + 2] / 255;
+
+        [r, g, b] = adjustColor(r, g, b);
+        const [lr, lg, lb] = getLutColor(r, g, b);
+
+        d[i] = Math.round((r + (lr - r) * mixAmount) * 255);
+        d[i + 1] = Math.round((g + (lg - g) * mixAmount) * 255);
+        d[i + 2] = Math.round((b + (lb - b) * mixAmount) * 255);
       }
-      animationId = requestAnimationFrame(render);
+      return imageData;
+    }
+
+    function fitPreviewSize() {
+      const w = video.videoWidth || 1280;
+      const h = video.videoHeight || 720;
+      if (!w || !h) return;
+      resolutionText.textContent = `${w}×${h}`;
+      previewCanvas.width = w;
+      previewCanvas.height = h;
+      offCanvas.width = w;
+      offCanvas.height = h;
+    }
+
+    function renderPreview() {
+      if (!previewWithLUT) {
+        rafId = null;
+        return;
+      }
+      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+        fitPreviewSize();
+        offCtx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height);
+        const frame = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+        const processed = applyLUTToImageData(frame);
+        previewCtx.putImageData(processed, 0, 0);
+      }
+      rafId = requestAnimationFrame(renderPreview);
+    }
+
+    async function waitForFrame(timeout = 6000) {
+      const start = Date.now();
+      while (Date.now() - start < timeout) {
+        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+          return true;
+        }
+        await new Promise(r => setTimeout(r, 120));
+      }
+      return false;
     }
 
     async function listCameras() {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const cams = devices.filter(d => d.kind === 'videoinput');
-      const previousValue = selectedDeviceId || cameraSelect.value;
+      const prev = selectedDeviceId || cameraSelect.value;
       cameraSelect.innerHTML = '';
-
       cams.forEach((cam, index) => {
         const option = document.createElement('option');
         option.value = cam.deviceId;
         option.textContent = cam.label || `Camera ${index + 1}`;
         cameraSelect.appendChild(option);
       });
-
       if (cams.length) {
-        const found = cams.some(cam => cam.deviceId === previousValue);
-        cameraSelect.value = found ? previousValue : cams[0].deviceId;
+        const found = cams.some(c => c.deviceId === prev);
+        cameraSelect.value = found ? prev : cams[0].deviceId;
         selectedDeviceId = cameraSelect.value;
       }
-
-      cameraSelect.disabled = !cams.length;
-      switchFacingBtn.disabled = !isMobile;
+      switchBtn.disabled = !isMobile;
     }
 
-    async function waitForVideoFrame(videoEl, timeout = 4000) {
-      if (videoEl.readyState >= 2 && videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
-        return true;
-      }
-
-      return await new Promise((resolve) => {
-        let settled = false;
-        let timer = null;
-
-        const cleanup = () => {
-          settled = true;
-          if (timer) clearTimeout(timer);
-          videoEl.removeEventListener('loadedmetadata', onMaybeReady);
-          videoEl.removeEventListener('canplay', onMaybeReady);
-          videoEl.removeEventListener('playing', onMaybeReady);
-          videoEl.removeEventListener('resize', onMaybeReady);
-        };
-
-        const finish = (ok) => {
-          if (settled) return;
-          cleanup();
-          resolve(ok);
-        };
-
-        const onMaybeReady = () => {
-          if (videoEl.readyState >= 2 && videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
-            finish(true);
-          }
-        };
-
-        videoEl.addEventListener('loadedmetadata', onMaybeReady);
-        videoEl.addEventListener('canplay', onMaybeReady);
-        videoEl.addEventListener('playing', onMaybeReady);
-        videoEl.addEventListener('resize', onMaybeReady);
-
-        if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
-          try {
-            videoEl.requestVideoFrameCallback(() => {
-              if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
-                finish(true);
-              }
-            });
-          } catch (_) {}
-        }
-
-        timer = setTimeout(() => finish(false), timeout);
-        onMaybeReady();
-      });
-    }
-
-    async function openPreferredStream() {
+    async function openCamera() {
       const tries = [];
-
       if (selectedDeviceId) {
-        tries.push({
-          video: {
-            deviceId: { exact: selectedDeviceId },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 30 }
-          },
-          audio: false
-        });
-
-        tries.push({
-          video: {
-            deviceId: { exact: selectedDeviceId },
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-          },
-          audio: false
-        });
-
-        tries.push({
-          video: { deviceId: { exact: selectedDeviceId } },
-          audio: false
-        });
+        tries.push({ video: { deviceId: { exact: selectedDeviceId } }, audio: false });
+        tries.push({ video: { deviceId: { exact: selectedDeviceId }, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
       }
-
       if (isMobile) {
-        tries.push({
-          video: {
-            facingMode: { ideal: preferredFacingMode },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: false
-        });
-
-        tries.push({
-          video: {
-            facingMode: preferredFacingMode
-          },
-          audio: false
-        });
+        tries.push({ video: { facingMode: preferredFacingMode }, audio: false });
+        tries.push({ video: { facingMode: { ideal: preferredFacingMode }, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
       }
-
       tries.push({ video: true, audio: false });
 
       let lastError = null;
       for (const constraints of tries) {
         try {
-          const s = await navigator.mediaDevices.getUserMedia(constraints);
-          return s;
+          return await navigator.mediaDevices.getUserMedia(constraints);
         } catch (err) {
           lastError = err;
-          console.warn('Mở camera thất bại với constraints:', constraints, err);
+          console.warn('Open camera failed:', constraints, err);
         }
       }
-
-      throw lastError || new Error('Không thể mở camera.');
+      throw lastError || new Error('Không mở được camera.');
     }
 
     async function startCamera() {
-      if (isStartingCamera) return;
-      isStartingCamera = true;
-      openAttempt += 1;
-      const currentAttempt = openAttempt;
+      if (isStarting) return;
+      isStarting = true;
       statusText.textContent = 'Đang khởi động camera...';
 
       try {
         stopCamera(false);
         selectedDeviceId = cameraSelect.value || selectedDeviceId;
-
-        stream = await openPreferredStream();
-        if (currentAttempt !== openAttempt) return;
+        stream = await openCamera();
 
         video.setAttribute('autoplay', 'true');
         video.setAttribute('muted', 'true');
@@ -801,189 +540,40 @@
         video.playsInline = true;
         video.srcObject = stream;
 
-        await new Promise(resolve => setTimeout(resolve, isMobile ? 250 : 80));
+        await new Promise(r => setTimeout(r, isMobile ? 250 : 80));
+        try { await video.play(); } catch (_) {}
 
-        try {
-          await video.play();
-        } catch (playError) {
-          console.warn('video.play() lỗi, thử gọi lại sau một nhịp:', playError);
-          await new Promise(resolve => setTimeout(resolve, 300));
-          try {
-            await video.play();
-          } catch (_) {}
-        }
+        const ok = await waitForFrame(isMobile ? 7000 : 5000);
+        if (!ok) throw new Error('Thiết bị đã kết nối nhưng trình duyệt không nhận được khung hình.');
 
-        let hasFrame = await waitForVideoFrame(video, isMobile ? 6000 : 4000);
-
-        if (!hasFrame) {
-          console.warn('Không nhận được frame đầu tiên, thử mở lại stream tối giản.');
-          stopCamera(false);
-          stream = isMobile
-            ? await navigator.mediaDevices.getUserMedia({ video: { facingMode: preferredFacingMode }, audio: false })
-            : (selectedDeviceId
-                ? await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: selectedDeviceId } }, audio: false })
-                : await navigator.mediaDevices.getUserMedia({ video: true, audio: false }));
-          video.srcObject = stream;
-          await new Promise(resolve => setTimeout(resolve, isMobile ? 250 : 80));
-          try {
-            await video.play();
-          } catch (_) {}
-          hasFrame = await waitForVideoFrame(video, isMobile ? 6000 : 4000);
-        }
-
-        if (!hasFrame || video.videoWidth === 0 || video.videoHeight === 0) {
-          const track = stream?.getVideoTracks?.()[0];
-          const settings = track?.getSettings?.() || {};
-          const label = track?.label || 'unknown camera';
-          throw new Error(`Camera đã kết nối nhưng trình duyệt không nhận được khung hình. Thiết bị: ${label}. ${settings.width || '?'}x${settings.height || '?'}`);
-        }
-
-        resizeCanvasToVideo();
-
-        if (!videoTexture) videoTexture = createVideoTexture();
-        if (animationId) cancelAnimationFrame(animationId);
-        render();
-
+        fitPreviewSize();
         statusText.textContent = 'Camera đang chạy';
         liveDot.classList.add('live');
 
-        try {
-          await listCameras();
-        } catch (_) {}
-      } catch (error) {
-        console.error(error);
+        if (previewWithLUT) {
+          if (rafId) cancelAnimationFrame(rafId);
+          renderPreview();
+        }
+      } catch (err) {
+        console.error(err);
         stopCamera(false);
         statusText.textContent = 'Lỗi mở camera';
-        alert('Không thể mở webcam ổn định: ' + error.message);
+        alert('Không thể dùng camera: ' + err.message + '. Trên mobile hãy mở qua HTTPS hoặc localhost.');
       } finally {
-        isStartingCamera = false;
+        isStarting = false;
       }
     }
 
-    function stopCamera(resetStatus = true) {
-      openAttempt += 1;
-
+    function stopCamera(resetText = true) {
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach(t => t.stop());
         stream = null;
       }
-
-      video.pause();
+      try { video.pause(); } catch (_) {}
       video.srcObject = null;
-
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-        animationId = null;
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
       }
-
-      gl.clearColor(0, 0, 0, 1);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-
-      if (resetStatus) {
-        statusText.textContent = 'Chưa bật camera';
-        liveDot.classList.remove('live');
-        resolutionText.textContent = '-';
-      }
-    }
-
-    function captureImage() {
-      const link = document.createElement('a');
-      const ts = new Date().toISOString().replace(/[:.]/g, '-');
-      link.download = `capture-${ts}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    }
-
-    function resetControls() {
-      controls.lutMix.value = '1';
-      controls.exposure.value = '0';
-      controls.contrast.value = '1';
-      controls.saturation.value = '1';
-      controls.temperature.value = '0';
-      updateUniforms();
-    }
-
-    for (const key of Object.keys(controls)) {
-      controls[key].addEventListener('input', updateUniforms);
-    }
-
-    cameraSelect.addEventListener('change', async () => {
-      selectedDeviceId = cameraSelect.value;
-      if (stream) {
-        await startCamera();
-      }
-    });
-
-    retryCameraBtn.addEventListener('click', async () => {
-      await startCamera();
-    });
-
-    switchFacingBtn.addEventListener('click', async () => {
-      preferredFacingMode = preferredFacingMode === 'user' ? 'environment' : 'user';
-      selectedDeviceId = '';
-      cameraSelect.value = '';
-      await startCamera();
-    });
-
-    startBtn.addEventListener('click', startCamera);
-    stopBtn.addEventListener('click', stopCamera);
-    captureBtn.addEventListener('click', captureImage);
-    resetBtn.addEventListener('click', resetControls);
-
-    function loadLutFromTextContent(text, fileName = 'Pasted LUT') {
-      const lut = parseCube(text, fileName);
-      uploadLUTTexture(lut);
-    }
-
-    lutFile.addEventListener('change', async (event) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      try {
-        const text = await file.text();
-        loadLutFromTextContent(text, file.name);
-      } catch (error) {
-        console.error(error);
-        alert('Lỗi nạp LUT: ' + error.message);
-      }
-    });
-
-    loadLutTextBtn.addEventListener('click', () => {
-      const text = lutText.value.trim();
-      if (!text) {
-        alert('Bạn chưa dán nội dung file .cube');
-        return;
-      }
-      try {
-        loadLutFromTextContent(text, 'Pasted LUT');
-      } catch (error) {
-        console.error(error);
-        alert('Lỗi nạp LUT từ nội dung dán: ' + error.message);
-      }
-    });
-
-    clearLutTextBtn.addEventListener('click', () => {
-      lutText.value = '';
-    });
-
-    navigator.mediaDevices.addEventListener?.('devicechange', listCameras);
-
-    window.addEventListener('beforeunload', stopCamera);
-
-    // init
-    uploadLUTTexture(createNeutralLUT(32));
-    updateUniforms();
-
-    (async () => {
-      try {
-        await listCameras();
-      } catch (error) {
-        console.warn('Không thể lấy danh sách camera', error);
-      }
-
-      if (isMobile) {
-        statusText.textContent = 'Chọn camera rồi bấm Bật camera';
-      }
-    })();
-  </script>
-</body>
-</html>
+      if (resetText) {
+        statusText.textContent = 'Chưa
